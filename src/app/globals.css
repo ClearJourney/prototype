@@ -13,21 +13,26 @@
   --success: #22c55e;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   background-color: var(--sand);
   color: var(--charcoal);
+  font-feature-settings: "rlig" 1, "calt" 1;
+  min-height: 100vh;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
+@layer base {
+  /* Clear typography hierarchy */
+  h1 {
+    @apply font-semibold tracking-tight text-charcoal;
   }
-}
-
-/* Date picker overrides to match design */
-.react-datepicker-wrapper {
-  width: 100%;
-}
-.react-datepicker__input-container input {
-  @apply w-full rounded-lg border border-border-light bg-white px-3 py-2.5 text-charcoal placeholder-charcoal-light outline-none focus:ring-2 focus:ring-navy/20;
+  h2 {
+    @apply font-semibold text-charcoal;
+  }
+  h3 {
+    @apply font-medium text-charcoal;
+  }
 }

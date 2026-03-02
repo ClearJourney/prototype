@@ -1,492 +1,169 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
+import {
+  UserPlus,
+  FileUp,
+  ConciergeBell,
+  ArrowLeft,
+  FileDown,
+  FileText,
+  Bell,
+  Lightbulb,
+} from "lucide-react";
+import { ImportClientsModal } from "@/components/ImportClientsModal";
 
-const TABS = [
-  "Details",
-  "Travel Preferences",
-  "Loyalty Programs",
-  "Key Dates",
-  "Documents",
-] as const;
+const CSV_TEMPLATE = `name,email,phone
+Jane Smith,jane@example.com,+1 555 000 0001
+John Doe,john@example.com,+1 555 000 0002`;
 
-type TabId = (typeof TABS)[number];
+export default function NewClientOnboardingPage() {
+  const [importModalOpen, setImportModalOpen] = useState(false);
 
-export default function AddNewClientPage() {
-  const router = useRouter();
-  const [activeTab, setActiveTab] = useState<TabId>("Details");
-  const [tags, setTags] = useState<string[]>(["VIP", "Family", "Repeat Client"]);
-  const [tagInput, setTagInput] = useState("");
-  const [dates, setDates] = useState<Record<string, Date | null>>({
-    birthday: null,
-    passportExpiry: null,
-    anniversary: null,
-    visaExpiry: null,
-    licenseExpiry: null,
-  });
-
-  const addTag = () => {
-    if (tagInput.trim()) {
-      setTags((p) => [...p, tagInput.trim()]);
-      setTagInput("");
-    }
-  };
-
-  const removeTag = (t: string) => {
-    setTags((p) => p.filter((x) => x !== t));
-  };
-
-  const handleSave = () => {
-    router.push("/dashboard/clients");
-  };
+  const handleDownloadTemplate = useCallback(() => {
+    const blob = new Blob([CSV_TEMPLATE], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "clear-journey-clients-template.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  }, []);
 
   return (
-    <div className="min-h-screen bg-sand">
-      <header className="border-b border-border-light bg-white px-6 py-4">
-        <div className="mx-auto flex max-w-4xl items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/dashboard" className="text-lg font-medium text-charcoal">
-              clearjourney
-            </Link>
+    <div className="mx-auto max-w-4xl">
+      <Link
+        href="/dashboard"
+        className="mb-6 inline-flex items-center gap-2 text-sm text-charcoal-light transition-colors hover:text-charcoal"
+      >
+        <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
+        Back to dashboard
+      </Link>
+
+      <div className="mb-10 text-center">
+        <h1 className="text-2xl font-semibold tracking-tight text-charcoal sm:text-3xl">
+          Let&apos;s bring your clients into Clear Journey
+        </h1>
+        <p className="mt-1.5 text-charcoal-light">
+          Choose the fastest way to get started — you&apos;ll be set up in minutes.
+        </p>
+      </div>
+
+      {/* Three options */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        {/* Add one by one */}
+        <div className="flex flex-col rounded-card border border-border-light/80 bg-white p-5 shadow-soft">
+          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-navy/10 text-navy">
+            <UserPlus className="h-5 w-5" strokeWidth={1.5} />
+          </span>
+          <h2 className="mt-3 font-semibold text-charcoal">Add Clients One by One</h2>
+          <p className="mt-1 text-sm text-charcoal-light">
+            For testing or starting small. Perfect if you want to get a feel for the profile structure.
+          </p>
+          <div className="mt-4 flex-1">
             <Link
-              href="/dashboard/clients"
-              className="text-charcoal-light hover:text-charcoal"
+              href="/dashboard/clients/new/manual"
+              className="inline-flex w-full justify-center rounded-button border border-border-light bg-white px-4 py-2.5 text-sm font-medium text-charcoal transition-colors hover:bg-sand-warm"
             >
-              ← Add New Client
+              Add a Client
             </Link>
+            <p className="mt-2 text-xs text-charcoal-light">Best if you&apos;re just exploring.</p>
           </div>
-          <button
-            type="button"
-            onClick={handleSave}
-            className="rounded-lg bg-navy px-4 py-2 font-medium text-white hover:bg-navy-dark"
-          >
-            Save Client
-          </button>
         </div>
-        <div className="mx-auto mt-4 flex max-w-4xl gap-6 border-b border-border-light">
-          {TABS.map((tab) => (
+
+        {/* Import CSV - Recommended */}
+        <div className="relative flex flex-col rounded-card border border-border-light/80 bg-white p-5 shadow-soft">
+          <div className="absolute -top-2 left-4 rounded bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-warning-muted">
+            Recommended
+          </div>
+          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-teal-accent/15 text-teal-accent">
+            <FileText className="h-5 w-5" strokeWidth={1.5} />
+          </span>
+          <h2 className="mt-3 font-semibold text-charcoal">Import Your Clients in Minutes</h2>
+          <p className="mt-1 text-sm text-charcoal-light">
+            Upload your full client list using our simple template. Get everyone onboarded instantly.
+          </p>
+          <div className="mt-4 flex flex-1 flex-col gap-2">
             <button
-              key={tab}
               type="button"
-              onClick={() => setActiveTab(tab)}
-              className={`border-b-2 pb-2 text-sm font-medium transition ${
-                activeTab === tab
-                  ? "border-charcoal text-charcoal"
-                  : "border-transparent text-charcoal-light hover:text-charcoal"
-              }`}
+              onClick={() => setImportModalOpen(true)}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-button bg-navy px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-navy-dark"
             >
-              {tab}
+              <FileUp className="h-4 w-4" strokeWidth={1.5} />
+              Upload CSV
             </button>
-          ))}
+            <button
+              type="button"
+              onClick={handleDownloadTemplate}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-button border border-border-light bg-white px-4 py-2.5 text-sm font-medium text-charcoal transition-colors hover:bg-sand-warm"
+            >
+              <FileDown className="h-4 w-4" strokeWidth={1.5} />
+              Download Template
+            </button>
+            <p className="mt-0.5 text-xs text-charcoal-light">No formatting headaches. We&apos;ll guide you.</p>
+          </div>
         </div>
-      </header>
 
-      <main className="mx-auto max-w-4xl px-6 py-8">
-        <div className="rounded-xl border border-border-light bg-white p-6 shadow-sm">
-          {/* Details */}
-          {activeTab === "Details" && (
-            <>
-              <div className="mb-6 flex items-center gap-2">
-                <span className="text-xl">👤</span>
-                <h2 className="text-lg font-bold text-charcoal">
-                  Personal Information
-                </h2>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-charcoal">
-                    First Name *
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="First name"
-                    className="w-full rounded-lg border border-border-light bg-white px-3 py-2.5 text-charcoal placeholder-charcoal-light outline-none focus:ring-2 focus:ring-navy/20"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-charcoal">
-                    Last Name *
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Last name"
-                    className="w-full rounded-lg border border-border-light bg-white px-3 py-2.5 text-charcoal placeholder-charcoal-light outline-none focus:ring-2 focus:ring-navy/20"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-charcoal">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    placeholder="Email"
-                    className="w-full rounded-lg border border-border-light bg-white px-3 py-2.5 text-charcoal placeholder-charcoal-light outline-none focus:ring-2 focus:ring-navy/20"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-charcoal">
-                    Phone Number *
-                  </label>
-                  <div className="flex rounded-lg border border-border-light bg-white overflow-hidden">
-                    <span className="flex items-center gap-1 border-r border-border-light px-3 py-2.5 text-charcoal-light">
-                      🇺🇸 +1
-                    </span>
-                    <input
-                      type="tel"
-                      placeholder="Phone number"
-                      className="flex-1 px-3 py-2.5 text-charcoal placeholder-charcoal-light outline-none focus:ring-2 focus:ring-navy/20"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-8">
-                <div className="mb-4 flex items-center gap-2">
-                  <span className="text-xl">📝</span>
-                  <h2 className="text-lg font-bold text-charcoal">Notes</h2>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-charcoal">
-                      Title
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Title"
-                      className="w-full rounded-lg border border-border-light bg-white px-3 py-2.5 text-charcoal placeholder-charcoal-light outline-none focus:ring-2 focus:ring-navy/20"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-charcoal">
-                      Additional Info
-                    </label>
-                    <textarea
-                      rows={3}
-                      placeholder="Add any special requests, preferences, or important details about this client..."
-                      className="w-full rounded-lg border border-border-light bg-white px-3 py-2.5 text-charcoal placeholder-charcoal-light outline-none focus:ring-2 focus:ring-navy/20"
-                    />
-                    <p className="mt-1 flex items-center gap-1 text-xs text-charcoal-light">
-                      💡 AI will help organize and summarize your notes.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-8">
-                <div className="mb-4 flex items-center gap-2">
-                  <span className="text-xl">🏠</span>
-                  <h2 className="text-lg font-bold text-charcoal">
-                    Residential Address
-                  </h2>
-                </div>
-                <div className="space-y-4">
-                  <input
-                    type="text"
-                    placeholder="Street address"
-                    className="w-full rounded-lg border border-border-light bg-white px-3 py-2.5 text-charcoal placeholder-charcoal-light outline-none focus:ring-2 focus:ring-navy/20"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Apartment, suite, etc."
-                    className="w-full rounded-lg border border-border-light bg-white px-3 py-2.5 text-charcoal placeholder-charcoal-light outline-none focus:ring-2 focus:ring-navy/20"
-                  />
-                  <div className="grid gap-4 md:grid-cols-3">
-                    <input
-                      type="text"
-                      placeholder="City"
-                      className="rounded-lg border border-border-light bg-white px-3 py-2.5 text-charcoal placeholder-charcoal-light outline-none focus:ring-2 focus:ring-navy/20"
-                    />
-                    <input
-                      type="text"
-                      placeholder="State / Province"
-                      className="rounded-lg border border-border-light bg-white px-3 py-2.5 text-charcoal placeholder-charcoal-light outline-none focus:ring-2 focus:ring-navy/20"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Postal Code"
-                      className="rounded-lg border border-border-light bg-white px-3 py-2.5 text-charcoal placeholder-charcoal-light outline-none focus:ring-2 focus:ring-navy/20"
-                    />
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Country"
-                    className="w-full rounded-lg border border-border-light bg-white px-3 py-2.5 text-charcoal placeholder-charcoal-light outline-none focus:ring-2 focus:ring-navy/20"
-                  />
-                </div>
-              </div>
-
-              <div className="mt-8">
-                <div className="mb-4 flex items-center gap-2">
-                  <span className="text-xl">🏷️</span>
-                  <h2 className="text-lg font-bold text-charcoal">
-                    Client Tags
-                  </h2>
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addTag())}
-                    placeholder="Birthday"
-                    className="flex-1 rounded-lg border border-border-light bg-white px-3 py-2.5 text-charcoal placeholder-charcoal-light outline-none focus:ring-2 focus:ring-navy/20"
-                  />
-                  <button
-                    type="button"
-                    onClick={addTag}
-                    className="flex h-10 w-10 items-center justify-center rounded-lg bg-navy text-white hover:bg-navy-dark"
-                  >
-                    +
-                  </button>
-                </div>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {tags.map((t) => (
-                    <span
-                      key={t}
-                      className="inline-flex items-center gap-1 rounded-full bg-charcoal-light/10 px-3 py-1 text-sm text-charcoal"
-                    >
-                      {t}
-                      <button
-                        type="button"
-                        onClick={() => removeTag(t)}
-                        className="hover:text-charcoal-light"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                </div>
-                <p className="mt-2 flex items-center gap-1 text-xs text-charcoal-light">
-                  💡 Suggested: Anniversary, Birthday, Honeymoon, Business,
-                  Foodie
-                </p>
-              </div>
-            </>
-          )}
-
-          {/* Travel Preferences */}
-          {activeTab === "Travel Preferences" && (
-            <>
-              <div className="mb-6 flex items-center gap-2">
-                <span className="text-xl">❤️</span>
-                <h2 className="text-lg font-bold text-charcoal">
-                  Travel Preferences
-                </h2>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-charcoal">
-                    Hotel Preference
-                  </label>
-                  <select className="w-full rounded-lg border border-border-light bg-white px-3 py-2.5 text-charcoal outline-none focus:ring-2 focus:ring-navy/20">
-                    <option>Select Hotel Type</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-charcoal">
-                    Dietary Preference
-                  </label>
-                  <select className="w-full rounded-lg border border-border-light bg-white px-3 py-2.5 text-charcoal outline-none focus:ring-2 focus:ring-navy/20">
-                    <option>Select Diet</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-charcoal">
-                    Seat Preference
-                  </label>
-                  <select className="w-full rounded-lg border border-border-light bg-white px-3 py-2.5 text-charcoal outline-none focus:ring-2 focus:ring-navy/20">
-                    <option>Select Seat Preference</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-charcoal">
-                    Travel Style
-                  </label>
-                  <select className="w-full rounded-lg border border-border-light bg-white px-3 py-2.5 text-charcoal outline-none focus:ring-2 focus:ring-navy/20">
-                    <option>Select Travel Style</option>
-                  </select>
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Loyalty Programs */}
-          {activeTab === "Loyalty Programs" && (
-            <>
-              <div className="mb-6 flex items-center gap-2">
-                <span className="text-xl">✈️</span>
-                <h2 className="text-lg font-bold text-charcoal">
-                  Loyalty Programs
-                </h2>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-charcoal">
-                    Program Type
-                  </label>
-                  <select className="w-full rounded-lg border border-border-light bg-white px-3 py-2.5 text-charcoal outline-none focus:ring-2 focus:ring-navy/20">
-                    <option>Select Type</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-charcoal">
-                    Membership Number
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Member ID"
-                    className="w-full rounded-lg border border-border-light bg-white px-3 py-2.5 text-charcoal placeholder-charcoal-light outline-none focus:ring-2 focus:ring-navy/20"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-charcoal">
-                    Program Name
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g., Delta SkyMiles"
-                    className="w-full rounded-lg border border-border-light bg-white px-3 py-2.5 text-charcoal placeholder-charcoal-light outline-none focus:ring-2 focus:ring-navy/20"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-charcoal">
-                    Tier
-                  </label>
-                  <select className="w-full rounded-lg border border-border-light bg-white px-3 py-2.5 text-charcoal outline-none focus:ring-2 focus:ring-navy/20">
-                    <option>Select Tier</option>
-                  </select>
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Key Dates */}
-          {activeTab === "Key Dates" && (
-            <>
-              <div className="mb-6 flex items-center gap-2">
-                <span className="text-xl">📅</span>
-                <h2 className="text-lg font-bold text-charcoal">Key Dates</h2>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-charcoal">
-                    Birthday
-                  </label>
-                  <DatePicker
-                    selected={dates.birthday}
-                    onChange={(d) => setDates((p) => ({ ...p, birthday: d ?? null }))}
-                    placeholderText="dd/mm/yyyy"
-                    dateFormat="dd/MM/yyyy"
-                    className="w-full rounded-lg border border-border-light bg-white px-3 py-2.5"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-charcoal">
-                    Passport Expiry
-                  </label>
-                  <DatePicker
-                    selected={dates.passportExpiry}
-                    onChange={(d) =>
-                      setDates((p) => ({ ...p, passportExpiry: d ?? null }))
-                    }
-                    placeholderText="dd/mm/yyyy"
-                    dateFormat="dd/MM/yyyy"
-                    className="w-full rounded-lg border border-border-light bg-white px-3 py-2.5"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-charcoal">
-                    Anniversary
-                  </label>
-                  <DatePicker
-                    selected={dates.anniversary}
-                    onChange={(d) =>
-                      setDates((p) => ({ ...p, anniversary: d ?? null }))
-                    }
-                    placeholderText="dd/mm/yyyy"
-                    dateFormat="dd/MM/yyyy"
-                    className="w-full rounded-lg border border-border-light bg-white px-3 py-2.5"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-charcoal">
-                    Visa Expiry
-                  </label>
-                  <DatePicker
-                    selected={dates.visaExpiry}
-                    onChange={(d) =>
-                      setDates((p) => ({ ...p, visaExpiry: d ?? null }))
-                    }
-                    placeholderText="dd/mm/yyyy"
-                    dateFormat="dd/MM/yyyy"
-                    className="w-full rounded-lg border border-border-light bg-white px-3 py-2.5"
-                  />
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Documents */}
-          {activeTab === "Documents" && (
-            <>
-              <div className="mb-6 flex items-center gap-2">
-                <span className="text-xl">🛂</span>
-                <h2 className="text-lg font-bold text-charcoal">Documents</h2>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-charcoal">
-                    Passport Number
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Enter Passport Number"
-                    className="w-full rounded-lg border border-border-light bg-white px-3 py-2.5 text-charcoal placeholder-charcoal-light outline-none focus:ring-2 focus:ring-navy/20"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-charcoal">
-                    Driver&apos;s License Number
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Enter License Number"
-                    className="w-full rounded-lg border border-border-light bg-white px-3 py-2.5 text-charcoal placeholder-charcoal-light outline-none focus:ring-2 focus:ring-navy/20"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-charcoal">
-                    Driver&apos;s License Expiry
-                  </label>
-                  <DatePicker
-                    selected={dates.licenseExpiry}
-                    onChange={(d) =>
-                      setDates((p) => ({ ...p, licenseExpiry: d ?? null }))
-                    }
-                    placeholderText="dd/mm/yyyy"
-                    dateFormat="dd/MM/yyyy"
-                    className="w-full rounded-lg border border-border-light bg-white px-3 py-2.5"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-charcoal">
-                    Visa Details
-                  </label>
-                  <textarea
-                    rows={4}
-                    placeholder="Add visa information, restrictions, or special requirements....."
-                    className="w-full rounded-lg border border-border-light bg-white px-3 py-2.5 text-charcoal placeholder-charcoal-light outline-none focus:ring-2 focus:ring-navy/20"
-                  />
-                </div>
-              </div>
-            </>
-          )}
+        {/* White glove */}
+        <div className="flex flex-col rounded-card border border-border-light/80 bg-white p-5 shadow-soft">
+          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-navy/10 text-navy">
+            <ConciergeBell className="h-5 w-5" strokeWidth={1.5} />
+          </span>
+          <h2 className="mt-3 font-semibold text-charcoal">Prefer We Handle It?</h2>
+          <p className="mt-1 text-sm text-charcoal-light">
+            Send us your client list and we&apos;ll set everything up for you. A true concierge experience.
+          </p>
+          <div className="mt-4 flex-1">
+            <Link
+              href="/dashboard/clients/new/white-glove"
+              className="inline-flex w-full justify-center rounded-button border border-border-light bg-white px-4 py-2.5 text-sm font-medium text-charcoal transition-colors hover:bg-sand-warm"
+            >
+              Request White-Glove Setup
+            </Link>
+            <p className="mt-2 text-xs text-charcoal-light">Because your time is better spent serving clients.</p>
+          </div>
         </div>
-      </main>
+      </div>
+
+      {/* What happens next */}
+      <div className="mt-16 text-center">
+        <h2 className="text-xl font-semibold text-charcoal">What happens next</h2>
+        <p className="mt-1 text-sm text-charcoal-light">
+          Once your clients are in, Clear Journey works behind the scenes to keep you connected.
+        </p>
+      </div>
+      <div className="mt-8 grid gap-6 sm:grid-cols-3">
+        <div className="flex flex-col items-center rounded-card border border-border-light/80 bg-white p-5 shadow-soft text-center">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-navy/10 text-navy">
+            <FileText className="h-6 w-6" strokeWidth={1.5} />
+          </span>
+          <h3 className="mt-3 font-semibold text-charcoal">Organized Profiles</h3>
+          <p className="mt-1 text-sm text-charcoal-light">
+            Every client gets a comprehensive profile with contact details, preferences, and history at your fingertips.
+          </p>
+        </div>
+        <div className="flex flex-col items-center rounded-card border border-border-light/80 bg-white p-5 shadow-soft text-center">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-navy/10 text-navy">
+            <Bell className="h-6 w-6" strokeWidth={1.5} />
+          </span>
+          <h3 className="mt-3 font-semibold text-charcoal">Timely Reminders</h3>
+          <p className="mt-1 text-sm text-charcoal-light">
+            Never miss an important date. Get gentle nudges for birthdays, anniversaries, and follow-ups.
+          </p>
+        </div>
+        <div className="flex flex-col items-center rounded-card border border-border-light/80 bg-white p-5 shadow-soft text-center">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-navy/10 text-navy">
+            <Lightbulb className="h-6 w-6" strokeWidth={1.5} />
+          </span>
+          <h3 className="mt-3 font-semibold text-charcoal">Smart Suggestions</h3>
+          <p className="mt-1 text-sm text-charcoal-light">
+            Receive intelligent recommendations on the best times to reach out and deepen relationships.
+          </p>
+        </div>
+      </div>
+
+      <ImportClientsModal isOpen={importModalOpen} onClose={() => setImportModalOpen(false)} />
     </div>
   );
 }

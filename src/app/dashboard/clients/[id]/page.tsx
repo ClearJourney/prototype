@@ -1,0 +1,318 @@
+import Link from "next/link";
+import { BedDouble, UtensilsCrossed, Plane, Heart, Bell, Pencil } from "lucide-react";
+import { SendIntakeDropdown } from "@/components/SendIntakeDropdown";
+
+// Icon key to Lucide component for preferences (matches sidebar nav style)
+const PREFERENCE_ICONS: Record<string, React.ComponentType<{ className?: string; strokeWidth?: number }>> = {
+  accommodations: BedDouble,
+  dining: UtensilsCrossed,
+  travel: Plane,
+  special: Heart,
+};
+
+// Mock client profile data – in a real app this would come from API/database
+const MOCK_CLIENTS: Record<
+  string,
+  {
+    name: string;
+    initials: string;
+    dob: string;
+    age: number;
+    email: string;
+    phone: string;
+    tags: { label: string; style: string }[];
+    preferences: { iconKey: keyof typeof PREFERENCE_ICONS; label: string; value: string }[];
+    household: { name: string; role: string }[];
+    householdSummary: string;
+    aiSummary: string;
+    notes: { date: string; text: string }[];
+    reminders: { overdue: { title: string; due: string }[]; upcoming: { title: string; due: string }[] };
+  }
+> = {
+  "emma-johnson": {
+    name: "Emma Johnson",
+    initials: "EJ",
+    dob: "18/05/1982",
+    age: 42,
+    email: "emma.johnson@email.com",
+    phone: "+1 (555) 123-4567",
+    tags: [
+      { label: "VIP", style: "bg-amber-100 text-amber-800" },
+      { label: "Returning Client", style: "bg-charcoal-light/10 text-charcoal" },
+    ],
+    preferences: [
+      {
+        iconKey: "accommodations",
+        label: "Accommodations",
+        value: "Prefers luxury boutique hotels with ocean views. King bed only.",
+      },
+      {
+        iconKey: "dining",
+        label: "Dining",
+        value: "Pescatarian diet. Enjoys fine dining and wine pairings.",
+      },
+      {
+        iconKey: "travel",
+        label: "Travel",
+        value: "Business class or higher. Aisle seat preferred.",
+      },
+      {
+        iconKey: "special",
+        label: "Special Interests",
+        value: "Wine tasting, cooking classes, cultural experiences.",
+      },
+    ],
+    household: [
+      { name: "Emma Johnson", role: "Primary" },
+      { name: "David Johnson", role: "Partner" },
+      { name: "Sophia Johnson", role: "Child" },
+      { name: "Michael Johnson", role: "Child" },
+    ],
+    householdSummary: "2 adults, 2 children",
+    aiSummary:
+      "Emma values privacy and curated experiences. She prefers intimate settings with her family and appreciates personalized service that anticipates her needs without being intrusive.",
+    notes: [
+      {
+        date: "March 15, 2024",
+        text: "Mentioned interest in visiting Japan during cherry blossom season. Prefers traditional ryokans over modern hotels.",
+      },
+      {
+        date: "March 10, 2024",
+        text: "Loved the private wine tasting experience in Tuscany. Wants similar intimate experiences for future trips.",
+      },
+    ],
+    reminders: {
+      overdue: [{ title: "Follow up on Japan trip", due: "March 10, 2024" }],
+      upcoming: [
+        { title: "Send cherry blossom itinerary", due: "March 20, 2024" },
+        { title: "Check visa requirements", due: "March 25, 2024" },
+        { title: "Book ryokan reservations", due: "March 30, 2024" },
+        { title: "Arrange airport transfers", due: "April 5, 2024" },
+        { title: "Send packing recommendations", due: "April 10, 2024" },
+      ],
+    },
+  },
+};
+
+// Fallback for other client IDs – reuse Emma's structure with generic name
+function getClientData(id: string) {
+  const client = MOCK_CLIENTS[id];
+  if (client) return client;
+  const name = id === "wf1" || id === "wf2" ? "Warren Foster" : "Liang Smith";
+  const initials = name.split(" ").map((n) => n[0]).join("");
+  return {
+    ...MOCK_CLIENTS["emma-johnson"],
+    name,
+    initials,
+    email: `${name.toLowerCase().replace(" ", ".")}@email.com`,
+    tags: [{ label: "Client", style: "bg-charcoal-light/10 text-charcoal" }],
+  };
+}
+
+export default function ClientProfilePage({
+  params,
+}: {
+  params: { id: string };
+}) {
+  const { id } = params;
+  const client = getClientData(id);
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Breadcrumb + Ask Concierge */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <nav className="text-sm text-charcoal-light">
+          <Link href="/dashboard/clients" className="hover:text-charcoal">
+            Clients
+          </Link>
+          <span className="mx-2">/</span>
+          <span className="font-medium text-charcoal">{client.name}</span>
+        </nav>
+        <Link
+          href="/dashboard/concierge"
+          className="inline-flex items-center gap-2 rounded-button border border-border-light bg-white px-4 py-2 text-sm font-medium text-charcoal transition-colors hover:bg-sand-warm"
+        >
+          <Bell className="h-5 w-5 flex-shrink-0" strokeWidth={1.5} />
+          Ask Concierge
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-error-muted/90 text-xs font-medium text-white">
+            3
+          </span>
+        </Link>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
+        {/* Main profile content */}
+        <div className="space-y-8">
+          {/* Client header */}
+          <div className="flex flex-wrap items-start justify-between gap-4 rounded-xl border border-border-light bg-white p-6">
+            <div className="flex flex-wrap items-center gap-4">
+              <span className="flex h-16 w-16 items-center justify-center rounded-full bg-navy text-xl font-medium text-white">
+                {client.initials}
+              </span>
+              <div>
+                <h1 className="text-2xl font-bold text-charcoal">{client.name}</h1>
+                <p className="text-charcoal-light">
+                  {client.dob} ({client.age})
+                </p>
+                <p className="text-sm text-charcoal-light">{client.email}</p>
+                <p className="text-sm text-charcoal-light">{client.phone}</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {client.tags.map((tag) => (
+                    <span
+                      key={tag.label}
+                      className={`rounded-full px-3 py-0.5 text-xs font-medium ${tag.style}`}
+                    >
+                      {tag.label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Link
+                href={`/dashboard/pipeline?client=${id}`}
+                className="rounded-lg bg-navy px-4 py-2 text-sm font-medium text-white hover:bg-navy-dark"
+              >
+                View in Pipeline
+              </Link>
+              <Link
+                href={`/dashboard/clients/${id}/edit`}
+                className="inline-flex items-center gap-2 rounded-button border border-border-light bg-white px-4 py-2 text-sm font-medium text-charcoal transition-colors hover:bg-sand-warm"
+              >
+                <Pencil className="h-5 w-5 flex-shrink-0" strokeWidth={1.5} />
+                Edit Profile
+              </Link>
+              <SendIntakeDropdown clientId={id} />
+            </div>
+          </div>
+
+          {/* Preferences */}
+          <section className="rounded-xl border border-border-light bg-white p-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-charcoal">Preferences</h2>
+              <button
+                type="button"
+                className="rounded-button p-2 text-charcoal-light transition-colors hover:bg-sand-warm hover:text-charcoal"
+                aria-label="Edit preferences"
+              >
+                <Pencil className="h-5 w-5" strokeWidth={1.5} />
+              </button>
+            </div>
+            <ul className="mt-4 space-y-4">
+              {client.preferences.map((pref) => {
+                const Icon = PREFERENCE_ICONS[pref.iconKey];
+                return (
+                  <li key={pref.label} className="flex gap-3">
+                    {Icon ? (
+                      <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center text-charcoal-light">
+                        <Icon className="h-5 w-5" strokeWidth={1.5} />
+                      </span>
+                    ) : null}
+                    <div>
+                      <p className="font-medium text-charcoal">{pref.label}</p>
+                      <p className="text-sm text-charcoal-light">{pref.value}</p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+
+          {/* Household */}
+          <section className="rounded-xl border border-border-light bg-white p-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-charcoal">Household</h2>
+              <button
+                type="button"
+                className="text-charcoal-light hover:text-charcoal"
+                aria-label="Add member"
+              >
+                +
+              </button>
+            </div>
+            <ul className="mt-4 space-y-2">
+              {client.household.map((member) => (
+                <li key={member.name} className="flex justify-between text-sm">
+                  <span className="text-charcoal">{member.name}</span>
+                  <span className="text-charcoal-light">({member.role})</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-sm text-charcoal-light">{client.householdSummary}</p>
+          </section>
+
+          {/* Notes & Insights */}
+          <section className="rounded-xl border border-border-light bg-white p-6">
+            <h2 className="text-lg font-semibold text-charcoal">Notes & Insights</h2>
+            <div className="mt-4 rounded-lg bg-amber-50/80 border border-amber-200/60 p-4">
+              <p className="text-2xl text-amber-600/80 leading-none">"</p>
+              <p className="text-sm text-charcoal -mt-2">{client.aiSummary}</p>
+            </div>
+            <p className="mt-2 text-xs text-charcoal-light">Concierge AI Summary</p>
+            <ul className="mt-4 space-y-3">
+              {client.notes.map((note, i) => (
+                <li key={i} className="flex justify-between gap-2 border-b border-border-light pb-3 last:border-0">
+                  <div>
+                    <p className="text-xs font-medium text-charcoal-light">{note.date}</p>
+                    <p className="text-sm text-charcoal">{note.text}</p>
+                  </div>
+                  <button type="button" className="text-charcoal-light hover:text-charcoal" aria-label="More">⋯</button>
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              className="mt-3 text-sm font-medium text-navy hover:underline"
+            >
+              + Add Note
+            </button>
+          </section>
+        </div>
+
+        {/* Right sidebar – Reminders */}
+        <aside className="h-fit rounded-xl border border-border-light bg-white p-5 lg:sticky lg:top-6">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-charcoal">Reminders</h2>
+            <button
+              type="button"
+              className="text-charcoal-light hover:text-charcoal"
+              aria-label="Add reminder"
+            >
+              +
+            </button>
+          </div>
+          {client.reminders.overdue.length > 0 && (
+            <div className="mt-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-red-600">Overdue</p>
+              <ul className="mt-2 space-y-2">
+                {client.reminders.overdue.map((r) => (
+                  <li
+                    key={r.title}
+                    className="rounded-lg border border-red-200 bg-red-50/50 p-3"
+                  >
+                    <p className="text-sm font-medium text-charcoal">{r.title}</p>
+                    <p className="text-xs text-red-600">Due: {r.due}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <div className="mt-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-charcoal-light">Upcoming</p>
+            <ul className="mt-2 space-y-2">
+              {client.reminders.upcoming.map((r) => (
+                <li
+                  key={r.title}
+                  className="rounded-lg border border-border-light bg-sand-warm/50 p-3"
+                >
+                  <p className="text-sm font-medium text-charcoal">{r.title}</p>
+                  <p className="text-xs text-charcoal-light">Due: {r.due}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+}

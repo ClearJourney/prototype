@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Clear Journey — Client Management for Luxury Travel Advisors",
+  title: "Clear Journey",
   description:
-    "Streamline your client management and follow-up process. Built for independent and boutique luxury travel advisors.",
+    "Supercharge your business with real-time analytics and data-driven insights.",
 };
 
 export default function RootLayout({

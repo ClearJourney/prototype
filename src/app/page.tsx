@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 const FAQ_ITEMS = [
   { q: "What is Clear Journey?", a: "Clear Journey is a platform that helps you supercharge your business with real-time analytics and data-driven insights." },
@@ -33,7 +34,16 @@ export default function HomePage() {
       {/* Top bar - dark blue */}
       <div className="bg-navy px-4 py-2">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <span className="text-sm font-medium text-white">Clear Journey</span>
+          <Link href="/" className="flex items-center">
+            <Image
+              src="/logo.png"
+              alt="Clear Journey"
+              width={140}
+              height={32}
+              className="h-6 w-auto invert"
+              priority
+            />
+          </Link>
           <div className="flex items-center gap-3">
             <Link href="/login" className="text-sm text-white hover:opacity-90">Login</Link>
             <Link href="/signup" className="rounded border border-sky-400/60 px-3 py-1 text-sm text-white hover:bg-white/10">Sign Up</Link>
@@ -44,7 +54,16 @@ export default function HomePage() {
       {/* Main nav - light beige */}
       <header className="border-b border-border-light bg-sand px-6 py-4">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <Link href="/" className="text-lg font-semibold text-charcoal">Clear Journey</Link>
+          <Link href="/" className="flex items-center">
+            <Image
+              src="/logo.png"
+              alt="Clear Journey"
+              width={140}
+              height={32}
+              className="h-8 w-auto"
+              priority
+            />
+          </Link>
           <nav className="flex items-center gap-6 text-sm text-charcoal-light">
             <Link href="/" className="hover:text-charcoal">Home</Link>
             <Link href="#about" className="hover:text-charcoal">About</Link>

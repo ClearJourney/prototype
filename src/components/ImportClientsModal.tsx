@@ -1,344 +1,372 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useCallback } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  X,
+  FileDown,
+  CloudArrowUp,
+  Check,
+  FileText,
+  Info,
+} from "lucide-react";
 
-type Step = 1 | 2 | 3 | "processing" | "success";
+const CSV_TEMPLATE = `name,email,phone
+Jane Smith,jane@example.com,+1 555 000 0001
+John Doe,john@example.com,+1 555 000 0002`;
+
+type Step = 1 | 2 | 3;
 
 type Props = {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: () => void;
 };
 
-export function ImportClientsModal({ isOpen, onClose, onSuccess }: Props) {
+export function ImportClientsModal({ isOpen, onClose }: Props) {
+  const router = useRouter();
   const [step, setStep] = useState<Step>(1);
   const [file, setFile] = useState<File | null>(null);
-  const [contactsCount, setContactsCount] = useState(0);
-  const [errorsCount, setErrorsCount] = useState(0);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadedFileName, setUploadedFileName] = useState("");
+  const [contactsCount] = useState(142);
+  const [errorsCount] = useState(0);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
-  if (!isOpen) return null;
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (f) {
-      setFile(f);
-      setContactsCount(142);
-      setErrorsCount(0);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    const f = e.dataTransfer.files?.[0];
-    if (f && f.name.endsWith(".csv")) {
-      setFile(f);
-      setContactsCount(142);
-      setErrorsCount(0);
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => e.preventDefault();
-
-  const downloadTemplate = () => {
-    const headers = ["name", "email", "phone", "notes"];
-    const csv = [headers.join(",")].join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
+  const handleDownloadTemplate = useCallback(() => {
+    const blob = new Blob([CSV_TEMPLATE], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = "clear-journey-clients-template.csv";
     a.click();
     URL.revokeObjectURL(url);
-  };
+  }, []);
 
-  const goToStep2 = () => setStep(2);
-  const goToStep3 = () => setStep(3);
-  const startImport = () => {
-    setStep("processing");
+  const handleFile = useCallback((f: File | null) => {
+    if (!f) {
+      setFile(null);
+      setUploadedFileName("");
+      return;
+    }
+    if (!f.name.toLowerCase().endsWith(".csv")) return;
+    setFile(f);
+    setUploadedFileName(f.name);
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setIsDragging(false);
+      const f = e.dataTransfer.files[0];
+      if (f) handleFile(f);
+    },
+    [handleFile]
+  );
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  const handleFileInput = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const f = e.target.files?.[0];
+      handleFile(f || null);
+      e.target.value = "";
+    },
+    [handleFile]
+  );
+
+  const handleImport = useCallback(() => {
+    setIsProcessing(true);
     setTimeout(() => {
-      setStep("success");
+      setIsProcessing(false);
+      setIsSuccess(true);
     }, 2500);
-  };
-  const finishSuccess = () => {
-    setStep(1);
-    setFile(null);
+  }, []);
+
+  const handleViewClients = useCallback(() => {
     onClose();
-    onSuccess?.();
-  };
-  const importAnother = () => {
+    router.push("/dashboard/clients");
+  }, [onClose, router]);
+
+  const handleImportAnother = useCallback(() => {
+    setIsSuccess(false);
     setStep(1);
     setFile(null);
-  };
+    setUploadedFileName("");
+  }, []);
 
+  const resetAndClose = useCallback(() => {
+    setStep(1);
+    setFile(null);
+    setUploadedFileName("");
+    setIsProcessing(false);
+    setIsSuccess(false);
+    onClose();
+  }, [onClose]);
+
+  if (!isOpen) return null;
+
+  // Processing overlay
+  if (isProcessing) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-charcoal/20 p-4 backdrop-blur-[2px]">
+        <div className="w-full max-w-sm rounded-card bg-white p-8 shadow-soft-xl text-center">
+          <span className="flex h-14 w-14 mx-auto items-center justify-center rounded-full bg-navy/10 text-navy">
+            <CloudArrowUp className="h-7 w-7" strokeWidth={1.5} />
+          </span>
+          <h2 className="mt-4 text-lg font-semibold text-charcoal">Processing Import</h2>
+          <p className="mt-2 text-sm text-charcoal-light">
+            We&apos;re securely processing your clients...
+          </p>
+          <p className="mt-0.5 text-sm text-charcoal-light">
+            This usually takes less than 60 seconds.
+          </p>
+          <div className="mt-6 h-1 w-full overflow-hidden rounded-full bg-border-light">
+            <div className="h-full w-full animate-pulse rounded-full bg-navy/60" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Success overlay
+  if (isSuccess) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-charcoal/20 p-4 backdrop-blur-[2px]">
+        <div className="relative w-full max-w-sm rounded-card bg-white p-8 shadow-soft-xl text-center">
+          <button
+            type="button"
+            onClick={resetAndClose}
+            className="absolute right-4 top-4 rounded-button p-2 text-charcoal-light hover:bg-sand-warm hover:text-charcoal"
+            aria-label="Close"
+          >
+            <X className="h-5 w-5" strokeWidth={1.5} />
+          </button>
+          <span className="flex h-14 w-14 mx-auto items-center justify-center rounded-full bg-success-muted/15 text-success-muted">
+            <Check className="h-7 w-7" strokeWidth={2} />
+          </span>
+          <h2 className="mt-4 text-lg font-semibold text-charcoal">Your Clients Are Live</h2>
+          <p className="mt-2 text-sm text-charcoal-light">
+            You can now start setting reminders and personal notes for your newly imported contacts.
+          </p>
+          <button
+            type="button"
+            onClick={handleViewClients}
+            className="mt-6 w-full rounded-button bg-navy py-3 text-sm font-medium text-white transition-colors hover:bg-navy-dark"
+          >
+            View Clients →
+          </button>
+          <button
+            type="button"
+            onClick={handleImportAnother}
+            className="mt-3 text-sm font-medium text-navy hover:underline"
+          >
+            Import another file
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Main import steps modal
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-      <div
-        className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute right-4 top-4 text-charcoal-light hover:text-charcoal"
-          aria-label="Close"
-        >
-          ×
-        </button>
-
-        <h2 className="text-xl font-bold text-charcoal">
-          Import Your Clients
-        </h2>
-        <p className="mt-1 text-sm text-charcoal-light">
-          Bring your existing client list into Clear Journey.
-        </p>
-
-        {/* Processing state */}
-        {step === "processing" && (
-          <div className="mt-8 flex flex-col items-center py-8">
-            <div className="mb-4 h-16 w-16 rounded-full bg-charcoal-light/20 flex items-center justify-center text-3xl">
-              ☁️
-            </div>
-            <h3 className="text-lg font-semibold text-charcoal">
-              Processing Import
-            </h3>
-            <p className="mt-2 text-center text-sm text-charcoal-light">
-              We&apos;re securely processing your clients...
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-charcoal/20 p-4 backdrop-blur-[2px]">
+      <div className="relative w-full max-w-lg rounded-card bg-white p-6 shadow-soft-xl">
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-charcoal">Import Your Clients</h2>
+            <p className="mt-0.5 text-sm text-charcoal-light">
+              Bring your existing client list into Clear Journey.
             </p>
-            <p className="text-sm text-charcoal-light">
-              This usually takes less than 60 seconds.
-            </p>
-            <div className="mt-6 h-1 w-full rounded-full bg-charcoal-light/20 overflow-hidden">
-              <div className="h-full w-1/3 animate-pulse rounded-full bg-charcoal-light/50" />
-            </div>
           </div>
-        )}
+          <button
+            type="button"
+            onClick={resetAndClose}
+            className="rounded-button p-2 text-charcoal-light hover:bg-sand-warm hover:text-charcoal"
+            aria-label="Close"
+          >
+            <X className="h-5 w-5" strokeWidth={1.5} />
+          </button>
+        </div>
 
-        {/* Success state */}
-        {step === "success" && (
-          <div className="mt-8 flex flex-col items-center py-4">
-            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-success/20 text-2xl text-success">
-              ✓
-            </div>
-            <h3 className="text-xl font-bold text-charcoal">
-              Your Clients Are Live
-            </h3>
-            <p className="mt-2 text-center text-sm text-charcoal-light">
-              You can now start setting reminders and personal notes for your
-              newly imported contacts.
-            </p>
+        {/* Step indicators */}
+        <div className="mt-6 space-y-3">
+          <div className="flex items-center gap-3">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-success-muted/15 text-success-muted">
+              <Check className="h-3.5 w-3.5" strokeWidth={2} />
+            </span>
+            <span className="text-sm font-medium text-charcoal">Download Template</span>
             <button
               type="button"
-              onClick={finishSuccess}
-              className="mt-6 w-full rounded-lg bg-navy py-3 font-medium text-white hover:bg-navy-dark"
+              onClick={handleDownloadTemplate}
+              className="ml-auto text-sm font-medium text-navy hover:underline"
             >
-              View Clients →
-            </button>
-            <button
-              type="button"
-              onClick={importAnother}
-              className="mt-3 text-sm text-charcoal-light underline hover:text-charcoal"
-            >
-              Import another file
+              Re-download
             </button>
           </div>
-        )}
-
-        {/* Steps 1–3 */}
-        {(step === 1 || step === 2 || step === 3) && (
-          <>
-            <div className="mt-6 space-y-4">
-              {/* Step 1 */}
-              <div className="flex items-start gap-3">
-                {step > 1 ? (
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-success text-xs text-white">
-                    ✓
-                  </span>
-                ) : (
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-charcoal-light/30 text-xs font-medium text-charcoal">
-                    1
-                  </span>
-                )}
-                <div className="flex-1">
-                  <p className="font-medium text-charcoal">
-                    Step 1 — Download Template
-                  </p>
-                  <button
-                    type="button"
-                    onClick={downloadTemplate}
-                    className="mt-1 text-sm text-charcoal-light underline hover:text-charcoal"
-                  >
-                    {step > 1 ? "Re-download" : "Download CSV Template"}
-                  </button>
-                </div>
-              </div>
-
-              {/* Step 2 */}
-              <div className="flex items-start gap-3">
-                {step > 2 ? (
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-success text-xs text-white">
-                    ✓
-                  </span>
-                ) : (
-                  <span
-                    className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium ${
-                      step === 2
-                        ? "border-2 border-charcoal bg-white text-charcoal"
-                        : "bg-charcoal-light/30 text-charcoal"
-                    }`}
-                  >
-                    2
-                  </span>
-                )}
-                <div className="flex-1">
-                  <p className="font-medium text-charcoal">
-                    Step 2 — Upload Your Completed File
-                  </p>
-                  {step === 2 && (
-                    <div
-                      onDrop={handleDrop}
-                      onDragOver={handleDragOver}
-                      onClick={() => fileInputRef.current?.click()}
-                      className="mt-2 flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-border-light py-8 hover:border-charcoal-light/50"
-                    >
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".csv"
-                        onChange={handleFileChange}
-                        className="hidden"
-                      />
-                      <span className="text-4xl">☁️</span>
-                      <p className="mt-2 text-charcoal">
-                        Drag and drop your file here
-                      </p>
-                      <p className="text-sm text-charcoal-light underline">
-                        or click to browse
-                      </p>
-                      <span className="mt-2 rounded bg-charcoal-light/10 px-2 py-1 text-xs text-charcoal-light">
-                        .CSV FILES ONLY
-                      </span>
-                    </div>
-                  )}
-                  {step === 3 && file && (
-                    <button
-                      type="button"
-                      className="mt-1 text-sm text-charcoal-light underline"
-                    >
-                      Change file
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Step 3 */}
-              {(step === 2 || step === 3) && (
-                <div className="flex items-start gap-3">
-                  <span
-                    className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium ${
-                      step === 3
-                        ? "border-2 border-charcoal bg-white text-charcoal"
-                        : "bg-charcoal-light/30 text-charcoal"
-                    }`}
-                  >
-                    3
-                  </span>
-                  <div className="flex-1">
-                    <p className="font-medium text-charcoal">
-                      Step 3 — Confirm Import
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Step 3 content */}
-            {step === 3 && (
-              <div className="mt-6 rounded-lg bg-sand-warm p-4 text-center">
-                <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-success/20 text-xl text-success">
-                  ✓
-                </div>
-                <p className="font-semibold text-charcoal">Ready to import</p>
-                <p className="mt-1 text-sm text-charcoal-light">
-                  {file?.name ?? "clients_import_v2.csv"}
-                </p>
-                <div className="mt-3 flex justify-center gap-6 text-sm">
-                  <span>
-                    <span className="text-charcoal-light">CONTACTS:</span>{" "}
-                    {contactsCount}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <span className="text-charcoal-light">ERRORS:</span>{" "}
-                    {errorsCount}
-                    <span className="h-2 w-2 rounded-full bg-success" />
-                  </span>
-                </div>
-                <p className="mt-2 text-xs text-charcoal-light">
-                  We&apos;ve validated your file and everything looks perfect.
-                </p>
-              </div>
-            )}
-
-            {/* White-glove */}
-            <div className="mt-6 flex gap-2 rounded-lg bg-sand-warm/50 p-3">
-              <span className="text-charcoal-light">ℹ️</span>
-              <p className="text-sm text-charcoal-light">
-                Prefer a white-glove service? Our Concierge Team can handle the
-                formatting and import for you.{" "}
-                <button
-                  type="button"
-                  className="underline hover:text-charcoal"
-                >
-                  Request White-Glove Setup
-                </button>
-              </p>
-            </div>
-            <div className="mt-6 flex justify-end gap-2">
+          <div className="flex items-center gap-3">
+            <span
+              className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium ${
+                step >= 2 ? "bg-success-muted/15 text-success-muted" : "bg-charcoal/10 text-charcoal"
+              }`}
+            >
+              {step >= 2 ? <Check className="h-3.5 w-3.5" strokeWidth={2} /> : "2"}
+            </span>
+            <span className="text-sm font-medium text-charcoal">Upload Your Completed File</span>
+            {file && (
               <button
                 type="button"
-                onClick={onClose}
-                className="rounded-lg px-4 py-2 text-charcoal-light hover:bg-sand-warm"
+                onClick={() => handleFile(null)}
+                className="ml-auto text-sm font-medium text-navy hover:underline"
               >
-                Cancel
+                Change file
               </button>
-              {step === 3 ? (
-                <button
-                  type="button"
-                  onClick={startImport}
-                  className="rounded-lg bg-navy px-4 py-2 font-medium text-white hover:bg-navy-dark"
-                >
-                  Import Clients →
-                </button>
-              ) : step === 2 ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setStep(1)}
-                    className="rounded-lg bg-sand-warm px-4 py-2 font-medium text-charcoal"
-                  >
-                    Back
-                  </button>
-                  <button
-                    type="button"
-                    onClick={goToStep3}
-                    disabled={!file}
-                    className="rounded-lg bg-navy px-4 py-2 font-medium text-white hover:bg-navy-dark disabled:opacity-50"
-                  >
-                    Import Clients →
-                  </button>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  onClick={goToStep2}
-                  className="rounded-lg bg-navy px-4 py-2 font-medium text-white hover:bg-navy-dark"
-                >
-                  Next
-                </button>
-              )}
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            <span
+              className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium ${
+                step === 3 ? "bg-navy text-white" : "bg-charcoal/10 text-charcoal"
+              }`}
+            >
+              3
+            </span>
+            <span className="text-sm font-medium text-charcoal">Confirm Import</span>
+          </div>
+        </div>
+
+        {/* Step content */}
+        {step === 1 && (
+          <>
+            <div className="mt-6 flex items-start gap-3 rounded-button border border-border-light bg-sand-warm/30 p-3">
+              <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-success-muted/15 text-success-muted">
+                <Check className="h-3 w-3" strokeWidth={2} />
+              </span>
+              <p className="text-sm text-charcoal-light">Only name and email are required to start.</p>
+            </div>
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={handleDownloadTemplate}
+                className="inline-flex items-center gap-2 rounded-button border border-border-light bg-white px-4 py-2.5 text-sm font-medium text-charcoal transition-colors hover:bg-sand-warm"
+              >
+                <FileDown className="h-4 w-4" strokeWidth={1.5} />
+                Download CSV Template
+              </button>
             </div>
           </>
         )}
+
+        {step === 2 && (
+          <div className="mt-6">
+            <label
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              className={`relative flex flex-col items-center justify-center rounded-button border-2 border-dashed py-10 transition-colors ${
+                isDragging ? "border-navy/40 bg-navy/5" : "border-border-light hover:border-charcoal-light/50"
+              }`}
+            >
+              <CloudArrowUp className="h-10 w-10 text-charcoal-light" strokeWidth={1.5} />
+              <p className="mt-2 text-sm font-medium text-charcoal">
+                Drag and drop your file here
+              </p>
+              <p className="mt-0.5 text-sm text-charcoal-light">or click to browse</p>
+              <p className="mt-2 flex items-center gap-1.5 text-xs text-charcoal-light">
+                <FileText className="h-3.5 w-3.5" strokeWidth={1.5} />
+                CSV files up to 10MB
+              </p>
+              <input
+                type="file"
+                accept=".csv"
+                onChange={handleFileInput}
+                className="absolute inset-0 cursor-pointer opacity-0"
+              />
+            </label>
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className="mt-6 rounded-button border border-border-light bg-sand-warm/30 p-4 text-center">
+            <span className="flex h-12 w-12 mx-auto items-center justify-center rounded-full bg-success-muted/15 text-success-muted">
+              <Check className="h-6 w-6" strokeWidth={2} />
+            </span>
+            <p className="mt-2 font-medium text-charcoal">Ready to import</p>
+            <div className="mt-2 flex items-center justify-center gap-2 rounded-button bg-white py-2 px-3">
+              <FileText className="h-4 w-4 text-charcoal-light" strokeWidth={1.5} />
+              <span className="text-sm font-medium text-charcoal">{uploadedFileName || "clients_import.csv"}</span>
+            </div>
+            <div className="mt-3 flex items-center justify-center gap-4 text-sm">
+              <span className="font-medium text-charcoal">CONTACTS: {contactsCount}</span>
+              <span className="flex items-center gap-1 font-medium text-success-muted">
+                ERRORS: {errorsCount}
+                <span className="h-1.5 w-1.5 rounded-full bg-success-muted" />
+              </span>
+            </div>
+            <p className="mt-2 text-xs text-charcoal-light">
+              We&apos;ve validated your file. Your client list will be updated securely in the background.
+            </p>
+          </div>
+        )}
+
+        {/* White-glove */}
+        <div className="mt-6 flex items-start gap-3 rounded-button border border-border-light/80 bg-sand-warm/30 p-3">
+          <Info className="h-5 w-5 flex-shrink-0 text-charcoal-light" strokeWidth={1.5} />
+          <p className="text-sm text-charcoal-light">
+            Prefer a white-glove service? Our Concierge Team can handle the formatting and import for you.{" "}
+            <Link href="/dashboard/clients/new/white-glove" onClick={resetAndClose} className="font-medium text-navy hover:underline">
+              Request White-Glove Setup
+            </Link>
+          </p>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-6 flex items-center justify-between gap-3 border-t border-border-light pt-4">
+          <button
+            type="button"
+            onClick={resetAndClose}
+            className="text-sm font-medium text-charcoal-light hover:text-charcoal"
+          >
+            Cancel
+          </button>
+          <div className="flex gap-2">
+            {step > 1 && (
+              <button
+                type="button"
+                onClick={() => setStep((s) => (s - 1) as Step)}
+                className="rounded-button border border-border-light bg-white px-4 py-2 text-sm font-medium text-charcoal hover:bg-sand-warm"
+              >
+                Back
+              </button>
+            )}
+            {step < 3 ? (
+              <button
+                type="button"
+                onClick={() => (step === 1 ? setStep(2) : file && setStep(3))}
+                disabled={step === 2 && !file}
+                className="rounded-button bg-navy px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-navy-dark disabled:opacity-50"
+              >
+                {step === 1 ? "Next" : "Continue →"}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleImport}
+                className="rounded-button bg-navy px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-navy-dark"
+              >
+                Import Clients →
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

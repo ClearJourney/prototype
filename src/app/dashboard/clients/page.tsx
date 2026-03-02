@@ -1,108 +1,50 @@
-"use client";
-
-import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { ImportClientsModal } from "@/components/ImportClientsModal";
+import { ChevronRight } from "lucide-react";
 
-const MOCK_CLIENTS = [
-  { id: "1", name: "Arturo M.", totalValue: "$125,000" },
-  { id: "2", name: "Fiona Murray", totalValue: "$105,000" },
-  { id: "3", name: "Elliot Murray", totalValue: "$45,000" },
+const CLIENTS = [
+  { id: "emma-johnson", name: "Emma Johnson", initials: "EJ" },
+  { id: "wf1", name: "Warren Foster", initials: "WF" },
+  { id: "ls1", name: "Liang Smith", initials: "LS" },
+  { id: "ls2", name: "Liang Smith", initials: "LS" },
+  { id: "wf2", name: "Warren Foster", initials: "WF" },
 ];
 
-function ClientsContent() {
-  const searchParams = useSearchParams();
-  const [importOpen, setImportOpen] = useState(false);
-
-  useEffect(() => {
-    if (searchParams.get("import") === "1") {
-      setImportOpen(true);
-    }
-  }, [searchParams]);
-
-  return (
-    <div className="p-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-charcoal">Clients</h1>
-          <p className="text-sm text-charcoal-light">
-            All Clients — Manage your client accounts
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <input
-            type="search"
-            placeholder="Search clients..."
-            className="rounded-lg border border-border-light bg-white px-3 py-2 text-sm text-charcoal placeholder-charcoal-light outline-none focus:ring-2 focus:ring-navy/20"
-          />
-          <button
-            type="button"
-            onClick={() => setImportOpen(true)}
-            className="rounded-lg border border-border-light bg-white px-3 py-2 text-sm font-medium text-charcoal hover:bg-sand-warm"
-          >
-            Filter
-          </button>
-          <button
-            type="button"
-            className="rounded-lg border border-border-light bg-white px-3 py-2 text-sm font-medium text-charcoal hover:bg-sand-warm"
-          >
-            Export
-          </button>
-          <Link
-            href="/dashboard/clients/new"
-            className="rounded-lg bg-navy px-4 py-2 text-sm font-medium text-white hover:bg-navy-dark"
-          >
-            + New Client
-          </Link>
-        </div>
-      </div>
-
-      <div className="mt-6 overflow-hidden rounded-xl border border-border-light bg-white">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-border-light bg-sand-warm/50 text-left text-xs font-medium uppercase tracking-wider text-charcoal-light">
-              <th className="px-4 py-3">Name</th>
-              <th className="px-4 py-3">Total value</th>
-              <th className="px-4 py-3">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {MOCK_CLIENTS.map((client) => (
-              <tr
-                key={client.id}
-                className="border-b border-border-light hover:bg-sand-warm/30"
-              >
-                <td className="px-4 py-3 font-medium text-charcoal">
-                  {client.name}
-                </td>
-                <td className="px-4 py-3 text-charcoal">{client.totalValue}</td>
-                <td className="px-4 py-3">
-                  <Link
-                    href={`/dashboard/clients/${client.id}`}
-                    className="text-sm text-charcoal underline hover:text-navy"
-                  >
-                    View
-                  </Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <ImportClientsModal
-        isOpen={importOpen}
-        onClose={() => setImportOpen(false)}
-      />
-    </div>
-  );
-}
+const total = CLIENTS.length;
 
 export default function ClientsPage() {
   return (
-    <Suspense fallback={<div className="p-6">Loading…</div>}>
-      <ClientsContent />
-    </Suspense>
+    <div className="flex flex-col gap-8">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight text-charcoal">
+          Clients
+        </h1>
+      </div>
+
+      <div>
+        <h2 className="text-lg font-semibold text-charcoal">All Clients</h2>
+        <p className="mt-0.5 text-sm text-charcoal-light">
+          Showing 1–{total} of {total} clients
+        </p>
+
+        <ul className="mt-4 overflow-hidden rounded-card bg-white shadow-soft">
+          {CLIENTS.map((client) => (
+            <li key={client.id} className="border-b border-border-light/60 last:border-0">
+              <Link
+                href={`/dashboard/clients/${client.id}`}
+                className="flex items-center justify-between gap-4 px-5 py-4 text-charcoal transition-colors hover:bg-sand-warm/50"
+              >
+                <div className="flex items-center gap-4">
+                  <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-navy text-sm font-medium text-white">
+                    {client.initials}
+                  </span>
+                  <span className="font-medium">{client.name}</span>
+                </div>
+                <ChevronRight className="h-5 w-5 flex-shrink-0 text-charcoal-light" strokeWidth={1.5} />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
   );
 }

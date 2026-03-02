@@ -17,9 +17,19 @@ const config: Config = {
         "charcoal-light": "#6b7280",
         "border-light": "#e5e7eb",
         success: "#22c55e",
+        "teal-accent": "#5b9b8f",
+        "success-muted": "#15803d",
+        "warning-muted": "#b45309",
+        "error-muted": "#b91c1c",
       },
-      fontFamily: {
-        sans: ["system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
+      boxShadow: {
+        soft: "0 2px 8px rgba(30, 41, 59, 0.06)",
+        "soft-lg": "0 4px 20px rgba(30, 41, 59, 0.08)",
+        "soft-xl": "0 8px 32px rgba(30, 41, 59, 0.1)",
+      },
+      borderRadius: {
+        card: "12px",
+        button: "10px",
       },
     },
   },
