@@ -1,9 +1,17 @@
 import Link from "next/link";
-import { BedDouble, UtensilsCrossed, Plane, Heart, Bell, Pencil } from "lucide-react";
+import {
+  BedDouble,
+  UtensilsCrossed,
+  Plane,
+  Heart,
+  Bell,
+  Pencil,
+  type LucideIcon,
+} from "lucide-react";
 import { SendIntakeDropdown } from "@/components/SendIntakeDropdown";
 
 // Icon key to Lucide component for preferences (matches sidebar nav style)
-const PREFERENCE_ICONS: Record<string, React.ComponentType<{ className?: string; strokeWidth?: number }>> = {
+const PREFERENCE_ICONS: Record<string, LucideIcon> = {
   accommodations: BedDouble,
   dining: UtensilsCrossed,
   travel: Plane,

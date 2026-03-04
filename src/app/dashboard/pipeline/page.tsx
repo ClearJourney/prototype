@@ -322,7 +322,7 @@ export default function PipelinePage() {
     return {
       id: o.id,
       clientName: o.clientName,
-      tripName: o.tripName,
+      tripName: o.tripName ?? "",
       value: o.value,
       valueNum: o.valueNum,
       stageId: o.stageId,

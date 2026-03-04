@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   X,
   FileDown,
-  CloudArrowUp,
+  Upload,
   Check,
   FileText,
   Info,
@@ -120,7 +120,7 @@ export function ImportClientsModal({ isOpen, onClose }: Props) {
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-charcoal/20 p-4 backdrop-blur-[2px]">
         <div className="w-full max-w-sm rounded-card bg-white p-8 shadow-soft-xl text-center">
           <span className="flex h-14 w-14 mx-auto items-center justify-center rounded-full bg-navy/10 text-navy">
-            <CloudArrowUp className="h-7 w-7" strokeWidth={1.5} />
+            <Upload className="h-7 w-7" strokeWidth={1.5} />
           </span>
           <h2 className="mt-4 text-lg font-semibold text-charcoal">Processing Import</h2>
           <p className="mt-2 text-sm text-charcoal-light">
@@ -275,7 +275,7 @@ export function ImportClientsModal({ isOpen, onClose }: Props) {
                 isDragging ? "border-navy/40 bg-navy/5" : "border-border-light hover:border-charcoal-light/50"
               }`}
             >
-              <CloudArrowUp className="h-10 w-10 text-charcoal-light" strokeWidth={1.5} />
+              <Upload className="h-10 w-10 text-charcoal-light" strokeWidth={1.5} />
               <p className="mt-2 text-sm font-medium text-charcoal">
                 Drag and drop your file here
               </p>
