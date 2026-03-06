@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Plus } from "lucide-react";
 
 const CLIENTS = [
   { id: "emma-johnson", name: "Emma Johnson", initials: "EJ" },
@@ -14,10 +14,17 @@ const total = CLIENTS.length;
 export default function ClientsPage() {
   return (
     <div className="flex flex-col gap-8">
-      <div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <h1 className="text-2xl font-semibold tracking-tight text-charcoal">
           Clients
         </h1>
+        <Link
+          href="/dashboard/clients/new"
+          className="inline-flex items-center justify-center gap-2 rounded-button bg-navy px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-navy-dark sm:self-center"
+        >
+          <Plus className="h-4 w-4" strokeWidth={2} />
+          Add Client
+        </Link>
       </div>
 
       <div>

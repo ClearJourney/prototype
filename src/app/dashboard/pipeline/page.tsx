@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   AddOpportunityModal,
   type OpportunityFormData,
@@ -11,6 +12,7 @@ import {
   type OpportunityDetail,
 } from "@/components/OpportunityDrawer";
 import { formatValue, STAGE_WEIGHTS } from "@/lib/pipeline";
+import { getRegionalPreferences } from "@/lib/preferences";
 
 const STAGES = [
   { id: "prospect", name: "Prospect", color: "bg-orange-500" },
@@ -37,6 +39,7 @@ type Opportunity = {
   tripName?: string;
   value: string;
   valueNum: number;
+  currency?: string;
   nextStep: string | null;
   nextStepDue?: string;
   daysInStage: number;
@@ -52,6 +55,9 @@ type Opportunity = {
   notes?: string;
   travelers?: { name: string; role: string }[];
   completedDate?: string; // for "Completed This Month"
+  needsAttention?: boolean;
+  createdAt?: string; // for inquiry cards
+  journeyType?: string;
 };
 
 const MOCK_PROSPECTS: Prospect[] = [
@@ -76,6 +82,7 @@ const MOCK_OPPORTUNITIES: Opportunity[] = [
     tripName: "Thompson Family Safari",
     value: "$85,000",
     valueNum: 85000,
+    currency: "USD",
     nextStep: "Follow up call • Due Dec 15",
     nextStepDue: "Dec 15",
     daysInStage: 5,
@@ -88,6 +95,7 @@ const MOCK_OPPORTUNITIES: Opportunity[] = [
     clientName: "Martinez Wedding",
     value: "$45,000",
     valueNum: 45000,
+    currency: "USD",
     nextStep: null,
     daysInStage: 12,
     initials: "MW",
@@ -99,6 +107,7 @@ const MOCK_OPPORTUNITIES: Opportunity[] = [
     clientName: "Wilson Anniversary",
     value: "$120,000",
     valueNum: 120000,
+    currency: "USD",
     nextStep: "Send hotel options • Due Dec 18",
     nextStepDue: "Dec 18",
     daysInStage: 3,
@@ -112,6 +121,7 @@ const MOCK_OPPORTUNITIES: Opportunity[] = [
     tripName: "Chen Family Safari",
     value: "$95,000",
     valueNum: 95000,
+    currency: "USD",
     nextStep: "Call • Due Dec 20, 2025",
     nextStepDue: "Dec 20, 2025",
     daysInStage: 7,
@@ -136,6 +146,7 @@ const MOCK_OPPORTUNITIES: Opportunity[] = [
     clientName: "Roberts Honeymoon",
     value: "$78,000",
     valueNum: 78000,
+    currency: "USD",
     nextStep: "Book flights • Due Dec 22",
     nextStepDue: "Dec 22",
     daysInStage: 2,
@@ -162,6 +173,8 @@ const DAYS_COLORS = {
 };
 
 export default function PipelinePage() {
+  const searchParams = useSearchParams();
+  const defaultCurrency = getRegionalPreferences().currency;
   const [opportunityModalOpen, setOpportunityModalOpen] = useState(false);
   const [prospectModalOpen, setProspectModalOpen] = useState(false);
   const [addToStage, setAddToStage] = useState<string | null>(null);
@@ -171,6 +184,72 @@ export default function PipelinePage() {
   const [selectedOpportunityId, setSelectedOpportunityId] = useState<string | null>(null);
   const [draggedOpportunityId, setDraggedOpportunityId] = useState<string | null>(null);
   const [dragOverStageId, setDragOverStageId] = useState<string | null>(null);
+
+  const opportunityParam = searchParams.get("opportunity");
+
+  useEffect(() => {
+    if (!opportunityParam || !opportunities.length) return;
+    const found = opportunities.find((o) => o.id === opportunityParam);
+    if (found) {
+      setSelectedOpportunityId(found.id);
+      if (found.needsAttention && found.id.startsWith("inq-")) {
+        fetch(`/api/opportunities/${found.id}`, { method: "PATCH" }).then(() => {
+          setOpportunities((prev) =>
+            prev.map((opp) =>
+              opp.id === found.id ? { ...opp, needsAttention: false } : opp
+            )
+          );
+        });
+      }
+      window.history.replaceState(null, "", "/dashboard/pipeline");
+    }
+  }, [opportunityParam, opportunities]);
+
+  const mergeApiOpportunities = (
+    data: { opportunities?: Array<{ id: string; clientName: string; stageId: string; value: string; valueNum: number; nextStep: string | null; nextStepDue?: string; daysInStage: number; initials: string; avatarColor: string; budget?: string; where?: string; journeyType?: string; notes?: string; createdAt?: string; needsAttention?: boolean }> }
+  ) => {
+    if (!data?.opportunities?.length) return;
+    const fromApi = data.opportunities.map((o) => ({
+      id: o.id,
+      clientName: o.clientName,
+      value: o.value,
+      valueNum: o.valueNum,
+      nextStep: o.nextStep,
+      nextStepDue: o.nextStepDue,
+      daysInStage: o.daysInStage,
+      initials: o.initials,
+      avatarColor: o.avatarColor,
+      stageId: o.stageId,
+      budget: o.budget,
+      where: o.where,
+      journeyType: o.journeyType,
+      notes: o.notes,
+      createdAt: o.createdAt,
+      needsAttention: o.needsAttention,
+    }));
+    setOpportunities((prev) => {
+      const ids = new Set(prev.map((p) => p.id));
+      const newOnes = fromApi.filter((o) => !ids.has(o.id));
+      return newOnes.length ? [...prev, ...newOnes] : prev;
+    });
+  };
+
+  const fetchOpportunities = () => {
+    fetch("/api/opportunities")
+      .then((res) => (res.ok ? res.json() : null))
+      .then(mergeApiOpportunities)
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    fetchOpportunities();
+  }, []);
+
+  useEffect(() => {
+    const onFocus = () => fetchOpportunities();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, []);
 
   const activeOpportunities = useMemo(
     () =>
@@ -258,10 +337,8 @@ export default function PipelinePage() {
   const handleSaveOpportunity = (data: OpportunityFormData) => {
     const stageId = mapStageToId(data.stage);
     const valueNum = Number(data.value.replace(/[^0-9.]/g, "")) || 0;
-    const valueStr =
-      data.currency === "USD"
-        ? formatValue(valueNum)
-        : `${valueNum.toLocaleString()} ${data.currency}`;
+    const currency = data.currency || "USD";
+    const valueStr = formatValue(valueNum, currency);
     const nextStepStr = data.nextStep
       ? `${data.nextStep}${data.date ? ` • Due ${data.date}` : ""}`
       : null;
@@ -275,6 +352,7 @@ export default function PipelinePage() {
         tripName: data.tripName || undefined,
         value: valueStr,
         valueNum,
+        currency,
         nextStep: nextStepStr,
         nextStepDue: data.date || undefined,
         daysInStage: 0,
@@ -323,7 +401,7 @@ export default function PipelinePage() {
       id: o.id,
       clientName: o.clientName,
       tripName: o.tripName ?? "",
-      value: o.value,
+      value: formatValue(o.valueNum, o.currency ?? defaultCurrency),
       valueNum: o.valueNum,
       stageId: o.stageId,
       stageName: stage?.name ?? o.stageId,
@@ -341,7 +419,7 @@ export default function PipelinePage() {
       notes: o.notes,
       travelers: o.travelers,
     };
-  }, [selectedOpportunityId, opportunities]);
+  }, [selectedOpportunityId, opportunities, defaultCurrency]);
 
   const handleMarkDone = (id: string) => {
     setOpportunities((prev) =>
@@ -382,6 +460,19 @@ export default function PipelinePage() {
           : o
       )
     );
+  };
+
+  const openOpportunity = (o: Opportunity) => {
+    setSelectedOpportunityId(o.id);
+    if (o.needsAttention && o.id.startsWith("inq-")) {
+      fetch(`/api/opportunities/${o.id}`, { method: "PATCH" }).then(() => {
+        setOpportunities((prev) =>
+          prev.map((opp) =>
+            opp.id === o.id ? { ...opp, needsAttention: false } : opp
+          )
+        );
+      });
+    }
   };
 
   const handleMoveOpportunity = (opportunityId: string, newStageId: string) => {
@@ -464,19 +555,19 @@ export default function PipelinePage() {
           },
           {
             variant: "default" as const,
-            value: formatValue(totalDealValue),
+            value: formatValue(totalDealValue, defaultCurrency),
             label: "Total Deal Value",
             isCurrency: true,
           },
           {
             variant: "default" as const,
-            value: formatValue(Math.round(weightedForecast)),
+            value: formatValue(Math.round(weightedForecast), defaultCurrency),
             label: "Weighted Forecast",
             isCurrency: true,
           },
           {
             variant: "default" as const,
-            value: formatValue(averageDealSize),
+            value: formatValue(averageDealSize, defaultCurrency),
             label: "Average Deal Size",
             isCurrency: true,
           },
@@ -487,7 +578,7 @@ export default function PipelinePage() {
           },
           {
             variant: "alert" as const,
-            value: "$340K",
+            value: formatValue(340000, defaultCurrency),
             label: "Outstanding Balances",
             isCurrency: true,
           },
@@ -503,7 +594,7 @@ export default function PipelinePage() {
           },
           {
             variant: "success" as const,
-            value: formatValue(completedThisMonth),
+            value: formatValue(completedThisMonth, defaultCurrency),
             label: "Completed This Month",
             isCurrency: true,
           },
@@ -620,7 +711,7 @@ export default function PipelinePage() {
                       draggable
                       onDragStart={(e) => handleDragStart(e, o.id)}
                       onDragEnd={handleDragEnd}
-                      onClick={() => setSelectedOpportunityId(o.id)}
+                      onClick={() => openOpportunity(o)}
                       className={`w-full rounded-button bg-white p-3 text-left shadow-soft transition-opacity hover:bg-sand-warm/50 ${
                         isDragging ? "cursor-grabbing opacity-50" : "cursor-grab"
                       }`}
@@ -630,7 +721,14 @@ export default function PipelinePage() {
                           <p className="font-medium text-charcoal">
                             {o.tripName || o.clientName}
                           </p>
-                          <p className="text-sm font-medium text-charcoal">{o.value}</p>
+                          {(o.budget || o.where || o.journeyType) && (
+                              <p className="text-xs text-charcoal-light">
+                                {[o.where, o.journeyType, o.budget].filter(Boolean).join(" · ")}
+                              </p>
+                          )}
+                          <p className="text-sm font-medium text-charcoal">
+                            {formatValue(o.valueNum, o.currency ?? defaultCurrency)}
+                          </p>
                           <p
                             className={`text-xs ${
                               nextStepDisplay === "No next step set"
@@ -640,11 +738,23 @@ export default function PipelinePage() {
                           >
                             {nextStepDisplay}
                           </p>
-                          <span
-                            className={`mt-1 inline-block rounded px-1.5 py-0.5 text-xs font-medium ${DAYS_COLORS[daysColor]}`}
-                          >
-                            {o.daysInStage} days
-                          </span>
+                          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                            {o.createdAt && (
+                              <span className="text-xs text-charcoal-light">
+                                {new Date(o.createdAt).toLocaleDateString()}
+                              </span>
+                            )}
+                            <span
+                              className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${DAYS_COLORS[daysColor]}`}
+                            >
+                              {o.daysInStage} days
+                            </span>
+                            {o.needsAttention && (
+                              <span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800">
+                                New inquiry
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <span
                           className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${o.avatarColor} text-xs font-medium text-white`}

@@ -1,68 +1,76 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Plus, MessageCircle } from "lucide-react";
 
-const TODAY_ITEMS = [
-  {
-    client: "The Andersons",
-    task: "Follow up on Tuscany proposal",
-    due: "Due 2:00 PM",
-    action: "Next Step",
-  },
-  {
-    client: "Chen Family Safari",
-    task: "Confirm hotel availability",
-    due: "Due 4:30 PM",
-    action: "Email",
-  },
-  {
-    client: "The Johnsons",
-    task: "Send welcome package",
-    due: "Due 6:00 PM",
-    action: "Proposal",
-  },
-];
-
-const NEEDS_ATTENTION = [
-  {
-    client: "Martinez Family",
-    task: "Review contract terms",
-    due: "2 days overdue",
-    action: "Reminder",
-    urgent: true,
-  },
-  {
-    client: "Thompson Group",
-    task: "Call about visa requirements",
-    due: "1 day overdue",
-    action: "Email",
-    urgent: true,
-  },
-];
-
-const COMING_UP = [
-  { client: "Roberts Family", task: "Send itinerary draft", due: "Tomorrow", action: "Email" },
-  { client: "Davis Couple", task: "Check flight prices", due: "Saturday", action: "Call" },
-  { client: "Lee Family", task: "Finalize dining reservations", due: "Sunday", action: "Email" },
-  { client: "Patel Group", task: "Send visa checklist", due: "Monday", action: "Email" },
-];
-
-function TaskRow({
-  client,
-  task,
-  due,
-  action,
-  urgent,
-}: {
+type TaskItem = {
+  id: string;
   client: string;
   task: string;
   due: string;
   action: string;
   urgent?: boolean;
+  opportunityId: string;
+  clientId?: string;
+};
+
+const TODAY_ITEMS: TaskItem[] = [
+  { id: "today-1", client: "The Andersons", task: "Follow up on Tuscany proposal", due: "Due 2:00 PM", action: "Next Step", opportunityId: "o1" },
+  { id: "today-2", client: "Chen Family Safari", task: "Confirm hotel availability", due: "Due 4:30 PM", action: "Email", opportunityId: "o4" },
+  { id: "today-3", client: "The Johnsons", task: "Send welcome package", due: "Due 6:00 PM", action: "Proposal", opportunityId: "o3" },
+];
+
+const NEEDS_ATTENTION: TaskItem[] = [
+  { id: "na-1", client: "Martinez Family", task: "Review contract terms", due: "2 days overdue", action: "Reminder", urgent: true, opportunityId: "o2" },
+  { id: "na-2", client: "Thompson Group", task: "Call about visa requirements", due: "1 day overdue", action: "Email", urgent: true, opportunityId: "o1" },
+];
+
+const COMING_UP: TaskItem[] = [
+  { id: "up-1", client: "Roberts Family", task: "Send itinerary draft", due: "Tomorrow", action: "Email", opportunityId: "o5" },
+  { id: "up-2", client: "Davis Couple", task: "Check flight prices", due: "Saturday", action: "Call", opportunityId: "o1" },
+  { id: "up-3", client: "Lee Family", task: "Finalize dining reservations", due: "Sunday", action: "Email", opportunityId: "o3" },
+  { id: "up-4", client: "Patel Group", task: "Send visa checklist", due: "Monday", action: "Email", opportunityId: "o2" },
+];
+
+function TaskRow({
+  id,
+  client,
+  task,
+  due,
+  action,
+  urgent,
+  opportunityId,
+  onComplete,
+}: {
+  id: string;
+  client: string;
+  task: string;
+  due: string;
+  action: string;
+  urgent?: boolean;
+  opportunityId: string;
+  onComplete?: (taskId: string) => void;
 }) {
+  const rowHref = `/dashboard/pipeline?opportunity=${encodeURIComponent(opportunityId)}`;
+
+  const handleActionClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Action pill keeps its own behaviour (e.g. future: open email/call flow)
+  };
+
+  const handleDotClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onComplete?.(id);
+  };
+
   return (
-    <div className="flex items-start justify-between gap-4 py-4 first:pt-0 last:pb-0 border-b border-border-light/60 last:border-0">
+    <Link
+      href={rowHref}
+      className="flex items-start justify-between gap-4 py-4 first:pt-0 last:pb-0 border-b border-border-light/60 last:border-0 transition-colors hover:bg-sand-warm/40 cursor-pointer"
+    >
       <div className="min-w-0 flex-1">
         <p className="font-medium text-charcoal">{client}</p>
         <p className="mt-0.5 text-sm text-charcoal-light">{task}</p>
@@ -71,20 +79,47 @@ function TaskRow({
       <div className="flex flex-shrink-0 items-center gap-2">
         <button
           type="button"
-          className="rounded-button border border-border-light bg-white px-3 py-1.5 text-xs font-medium text-charcoal transition-colors hover:bg-sand-warm"
+          onClick={handleActionClick}
+          className="rounded-button border border-border-light bg-white px-3 py-1.5 text-xs font-medium text-charcoal transition-colors hover:bg-sand-warm cursor-pointer"
         >
           {action}
         </button>
-        <span
-          className={`h-2 w-2 rounded-full ${urgent ? "bg-error-muted/80" : "bg-charcoal-light/40"}`}
-          aria-hidden
+        <button
+          type="button"
+          onClick={handleDotClick}
+          aria-label="Mark complete"
+          className={`h-2 w-2 flex-shrink-0 rounded-full cursor-pointer transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-navy/20 focus:ring-offset-1 ${urgent ? "bg-error-muted/80" : "bg-charcoal-light/40 hover:bg-charcoal-light/60"}`}
         />
       </div>
-    </div>
+    </Link>
   );
 }
 
 export default function DashboardPage() {
+  const [needsAttentionCount, setNeedsAttentionCount] = useState<number>(0);
+  const [completedTaskIds, setCompletedTaskIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    fetch("/api/opportunities")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { needsAttentionCount?: number }) => {
+        if (typeof data?.needsAttentionCount === "number") {
+          setNeedsAttentionCount(data.needsAttentionCount);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const completeTask = (taskId: string) => {
+    setCompletedTaskIds((prev) => new Set(prev).add(taskId));
+  };
+
+  const todayFiltered = TODAY_ITEMS.filter((item) => !completedTaskIds.has(item.id));
+  const needsAttentionFiltered = NEEDS_ATTENTION.filter((item) => !completedTaskIds.has(item.id));
+  const comingUpFiltered = COMING_UP.filter((item) => !completedTaskIds.has(item.id));
+
+  const totalNeedsAttention = needsAttentionFiltered.length + needsAttentionCount;
+
   return (
     <>
       <div className="flex flex-col gap-10">
@@ -111,15 +146,18 @@ export default function DashboardPage() {
             <h2 className="text-lg font-semibold text-charcoal">
               What&apos;s next today
             </h2>
-            <p className="mt-0.5 text-xs text-charcoal-light">3 items</p>
+            <p className="mt-0.5 text-xs text-charcoal-light">{todayFiltered.length} items</p>
             <div className="mt-5">
-              {TODAY_ITEMS.map((item, i) => (
+              {todayFiltered.map((item) => (
                 <TaskRow
-                  key={i}
+                  key={item.id}
+                  id={item.id}
                   client={item.client}
                   task={item.task}
                   due={item.due}
                   action={item.action}
+                  opportunityId={item.opportunityId}
+                  onComplete={completeTask}
                 />
               ))}
             </div>
@@ -129,16 +167,32 @@ export default function DashboardPage() {
             <h2 className="text-lg font-semibold text-charcoal">
               Needs attention
             </h2>
-            <p className="mt-0.5 text-xs text-warning-muted">2 urgent</p>
+            <p className="mt-0.5 text-xs text-warning-muted">
+              {totalNeedsAttention} {totalNeedsAttention === 1 ? "item" : "items"}
+              {needsAttentionCount > 0 && ` · ${needsAttentionCount} new ${needsAttentionCount === 1 ? "inquiry" : "inquiries"}`}
+            </p>
             <div className="mt-5">
-              {NEEDS_ATTENTION.map((item, i) => (
+              {needsAttentionCount > 0 && (
+                <div className="mb-4 rounded-button border border-amber-200 bg-amber-50/50 p-3">
+                  <Link
+                    href="/dashboard/pipeline"
+                    className="text-sm font-medium text-amber-800 hover:underline"
+                  >
+                    {needsAttentionCount} new {needsAttentionCount === 1 ? "inquiry" : "inquiries"} in pipeline →
+                  </Link>
+                </div>
+              )}
+              {needsAttentionFiltered.map((item) => (
                 <TaskRow
-                  key={i}
+                  key={item.id}
+                  id={item.id}
                   client={item.client}
                   task={item.task}
                   due={item.due}
                   action={item.action}
                   urgent={item.urgent}
+                  opportunityId={item.opportunityId}
+                  onComplete={completeTask}
                 />
               ))}
             </div>
@@ -148,15 +202,18 @@ export default function DashboardPage() {
             <h2 className="text-lg font-semibold text-charcoal">
               Coming up this week
             </h2>
-            <p className="mt-0.5 text-xs text-charcoal-light">4 items</p>
+            <p className="mt-0.5 text-xs text-charcoal-light">{comingUpFiltered.length} items</p>
             <div className="mt-5">
-              {COMING_UP.map((item, i) => (
+              {comingUpFiltered.map((item) => (
                 <TaskRow
-                  key={i}
+                  key={item.id}
+                  id={item.id}
                   client={item.client}
                   task={item.task}
                   due={item.due}
                   action={item.action}
+                  opportunityId={item.opportunityId}
+                  onComplete={completeTask}
                 />
               ))}
             </div>

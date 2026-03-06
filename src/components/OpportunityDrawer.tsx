@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import { MarkLostModal } from "./MarkLostModal";
+import { getDatePlaceholder, getPreferences } from "@/lib/preferences";
 
 const NEXT_STEP_OPTIONS = [
   "Call",
@@ -153,7 +154,7 @@ export function OpportunityDrawer({
                   type="text"
                   value={nextStepDue}
                   onChange={(e) => setNextStepDue(e.target.value)}
-                  placeholder="mm/dd/yyyy"
+                  placeholder={getDatePlaceholder(getPreferences().dateFormat)}
                   className={inputClass}
                 />
                 <button

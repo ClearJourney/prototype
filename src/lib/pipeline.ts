@@ -29,7 +29,17 @@ export function parseValueDisplay(display: string): number {
   return Number(num) || 0;
 }
 
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  USD: "$",
+  AUD: "A$",
+  CAD: "CA$",
+  GBP: "£",
+  EUR: "€",
+  NZD: "NZ$",
+};
+
+/** Format a numeric value as currency. Uses symbol-based display (e.g. £12,500). */
 export function formatValue(num: number, currency = "USD"): string {
-  if (currency === "USD") return `$${num.toLocaleString()}`;
-  return `${num.toLocaleString()} ${currency}`;
+  const symbol = CURRENCY_SYMBOLS[currency] ?? currency + " ";
+  return `${symbol}${num.toLocaleString()}`;
 }

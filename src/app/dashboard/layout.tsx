@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
+import { OnboardingGate } from "@/components/OnboardingGate";
 import { Bell } from "lucide-react";
 
 export default function DashboardLayout({
@@ -9,6 +10,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
+    <OnboardingGate>
     <div className="flex min-h-screen flex-col bg-sand">
       <header className="flex items-center justify-between bg-white px-6 py-4 shadow-soft">
         <Link href="/dashboard" className="flex items-center">
@@ -54,5 +56,6 @@ export default function DashboardLayout({
         </main>
       </div>
     </div>
+    </OnboardingGate>
   );
 }

@@ -20,6 +20,9 @@ yarn-error.log*
 # Vercel
 .vercel
 
+# Local data (inquiry store persistence)
+.data/
+
 # Misc
 .DS_Store
 *.pem

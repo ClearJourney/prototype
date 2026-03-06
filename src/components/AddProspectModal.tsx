@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
+import { getDatePlaceholder, getPreferences } from "@/lib/preferences";
 
 type Props = {
   isOpen: boolean;
@@ -100,7 +101,7 @@ export function AddProspectModal({ isOpen, onClose, onSave }: Props) {
               type="text"
               value={followUpDate}
               onChange={(e) => setFollowUpDate(e.target.value)}
-              placeholder="mm/dd/yyyy"
+              placeholder={getDatePlaceholder(getPreferences().dateFormat)}
               className={inputClass}
             />
           </div>

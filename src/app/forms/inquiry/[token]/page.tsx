@@ -8,6 +8,7 @@ import {
   DEFAULT_BUDGET_RANGES,
   type InquiryFormData,
 } from "@/types/secure-forms";
+import { isAccountSlug } from "@/lib/account";
 
 const PLANNING_STAGES = [
   "Exploring ideas",
@@ -47,6 +48,7 @@ export default function InquiryFormPage() {
   const params = useParams();
   const token = params?.token as string;
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [form, setForm] = useState<InquiryFormData>({
     planningStage: "",
     destination: "",
@@ -79,10 +81,27 @@ export default function InquiryFormPage() {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: POST to API with token, validate, create/update lead
+    const slugOrToken = token ?? "";
+    if (isAccountSlug(slugOrToken)) {
+      try {
+        const res = await fetch("/api/inquiry", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ accountSlug: slugOrToken, data: form }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err?.error ?? "Submission failed");
+        }
+      } catch (err) {
+        setSubmitError(err instanceof Error ? err.message : "Something went wrong");
+        return;
+      }
+    }
     setSubmitted(true);
+    setSubmitError(null);
   };
 
   if (submitted) {
@@ -109,6 +128,11 @@ export default function InquiryFormPage() {
       subtext="Share a few details so we can thoughtfully prepare for your journey."
     >
       <form onSubmit={handleSubmit} className="space-y-6">
+        {submitError && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            {submitError}
+          </div>
+        )}
         {/* Section 1 – Planning Readiness */}
         <FormSection
           title="Planning readiness"

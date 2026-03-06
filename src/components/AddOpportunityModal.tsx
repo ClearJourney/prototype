@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
+import { CURRENCIES, getPreferences, getDatePlaceholder } from "@/lib/preferences";
 
 const STAGES = [
   "Inquiry",
@@ -53,7 +54,7 @@ export function AddOpportunityModal({
   const [client, setClient] = useState(initialValues?.clientName ?? "");
   const [tripName, setTripName] = useState(initialValues?.tripName ?? "");
   const [value, setValue] = useState("");
-  const [currency, setCurrency] = useState("USD");
+  const [currency, setCurrency] = useState(() => getPreferences().currency);
   const [stage, setStage] = useState(defaultStage);
   const [nextStep, setNextStep] = useState("");
   const [date, setDate] = useState("");
@@ -62,6 +63,7 @@ export function AddOpportunityModal({
 
   useEffect(() => {
     if (isOpen) {
+      setCurrency(getPreferences().currency);
       if (initialValues) {
         setClient(initialValues.clientName ?? "");
         setTripName(initialValues.tripName ?? "");
@@ -167,9 +169,11 @@ export function AddOpportunityModal({
               onChange={(e) => setCurrency(e.target.value)}
               className="mt-7 rounded-button border border-border-light bg-white px-3 py-2.5 text-charcoal focus:outline-none focus:ring-2 focus:ring-navy/15"
             >
-              <option value="USD">USD</option>
-              <option value="GBP">GBP</option>
-              <option value="EUR">EUR</option>
+              {CURRENCIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -209,7 +213,7 @@ export function AddOpportunityModal({
                 type="text"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                placeholder="dd/mm/yyyy"
+                placeholder={getDatePlaceholder(getPreferences().dateFormat)}
                 className="flex-1 rounded-button border border-border-light bg-white px-3 py-2 text-sm text-charcoal placeholder-charcoal-light focus:ring-2 focus:ring-navy/15"
               />
               <input

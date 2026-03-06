@@ -1,68 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SettingsPanel } from "@/components/settings/SettingsPanel";
 import { SettingsCard } from "@/components/settings/SettingsCard";
 import { Toast } from "@/components/settings/Toast";
-
-const CURRENCIES = ["USD", "AUD", "GBP", "EUR", "CAD", "NZD"];
-
-const TIMEZONES = [
-  "America/New_York",
-  "America/Los_Angeles",
-  "America/Chicago",
-  "America/Denver",
-  "Europe/London",
-  "Europe/Paris",
-  "Australia/Sydney",
-  "Australia/Melbourne",
-  "Asia/Tokyo",
-  "UTC",
-];
-
-const DATE_FORMATS = [
-  { value: "DD/MM/YYYY", label: "DD/MM/YYYY" },
-  { value: "MM/DD/YYYY", label: "MM/DD/YYYY" },
-];
+import {
+  CURRENCIES,
+  TIMEZONES,
+  DATE_FORMATS,
+  getPreferences,
+  savePreferences as persistPreferences,
+  type Preferences,
+} from "@/lib/preferences";
 
 const COUNTRY_CODES = ["+1", "+44", "+61", "+49", "+33", "+81", "+64"];
-
-// Stub: replace with API when ready
-async function savePreferences(_data: PreferencesFormData): Promise<void> {
-  await new Promise((r) => setTimeout(r, 500));
-}
-
-type PreferencesFormData = {
-  currency: string;
-  timezone: string;
-  dateFormat: string;
-  defaultCountryCode: string;
-  defaultReminderTime: string;
-  emailNewInquiry: boolean;
-  emailReminders: boolean;
-  emailMarketing: boolean;
-};
-
-const defaultPrefs: PreferencesFormData = {
-  currency: "USD",
-  timezone: "America/New_York",
-  dateFormat: "MM/DD/YYYY",
-  defaultCountryCode: "+1",
-  defaultReminderTime: "09:00",
-  emailNewInquiry: true,
-  emailReminders: true,
-  emailMarketing: false,
-};
 
 const inputClass =
   "w-full max-w-xs rounded-button border border-border-light bg-white px-3 py-2.5 text-charcoal focus:outline-none focus:ring-2 focus:ring-navy/15";
 
 export default function PreferencesSettingsPage() {
-  const [form, setForm] = useState<PreferencesFormData>(defaultPrefs);
+  const [form, setForm] = useState<Preferences>(getPreferences());
   const [saving, setSaving] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
 
-  const handleChange = (field: keyof PreferencesFormData) => (
+  useEffect(() => {
+    setForm(getPreferences());
+  }, []);
+
+  const handleChange = (field: keyof Preferences) => (
     e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>
   ) => {
     const value =
@@ -74,7 +39,7 @@ export default function PreferencesSettingsPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      await savePreferences(form);
+      persistPreferences(form);
       setToastVisible(true);
     } finally {
       setSaving(false);
@@ -97,6 +62,9 @@ export default function PreferencesSettingsPage() {
                 <label className="mb-1.5 block text-sm font-medium text-charcoal">
                   Currency
                 </label>
+                <p className="mb-1.5 text-xs text-charcoal-light">
+                  Choose the currency used for budgets and opportunity values.
+                </p>
                 <select
                   value={form.currency}
                   onChange={handleChange("currency")}
@@ -113,6 +81,9 @@ export default function PreferencesSettingsPage() {
                 <label className="mb-1.5 block text-sm font-medium text-charcoal">
                   Timezone
                 </label>
+                <p className="mb-1.5 text-xs text-charcoal-light">
+                  Used for reminders and scheduling.
+                </p>
                 <select
                   value={form.timezone}
                   onChange={handleChange("timezone")}
@@ -129,6 +100,9 @@ export default function PreferencesSettingsPage() {
                 <label className="mb-1.5 block text-sm font-medium text-charcoal">
                   Date format
                 </label>
+                <p className="mb-1.5 text-xs text-charcoal-light">
+                  Choose how dates appear across the app.
+                </p>
                 <select
                   value={form.dateFormat}
                   onChange={handleChange("dateFormat")}

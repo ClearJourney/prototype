@@ -4,7 +4,8 @@ import { useState } from "react";
 import { SettingsPanel } from "@/components/settings/SettingsPanel";
 import { SettingsCard } from "@/components/settings/SettingsCard";
 import { Toast } from "@/components/settings/Toast";
-import { GripVertical, Plus, Trash2 } from "lucide-react";
+import { GripVertical, Plus, Trash2, Copy, ExternalLink, Code } from "lucide-react";
+import { getAccountSlug } from "@/lib/account";
 
 type FormTab = "inquiry" | "profile";
 
@@ -111,12 +112,96 @@ export default function IntakeFormsSettingsPage() {
     setToastVisible(true);
   };
 
+  const accountSlug = getAccountSlug();
+  const origin =
+    typeof window !== "undefined"
+      ? window.location.origin
+      : "";
+  const inquiryFormUrl = origin
+    ? `${origin}/forms/inquiry/${accountSlug}`
+    : `/forms/inquiry/${accountSlug}`;
+  const embedSnippet = `<iframe src="${origin || "https://your-domain.com"}/forms/inquiry/${accountSlug}" width="100%" height="800" frameborder="0" title="Travel inquiry form"></iframe>`;
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [embedCopied, setEmbedCopied] = useState(false);
+  const copyLink = () => {
+    if (!inquiryFormUrl) return;
+    navigator.clipboard.writeText(inquiryFormUrl);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  };
+  const copyEmbed = () => {
+    navigator.clipboard.writeText(embedSnippet);
+    setEmbedCopied(true);
+    setTimeout(() => setEmbedCopied(false), 2000);
+  };
+
   return (
     <>
       <SettingsPanel
         title="Intake Forms"
         description="Configure the two secure client forms: Inquiry (pre-consultation) and Client Profile (traveler details)."
       >
+        <SettingsCard
+          title="Share your Inquiry Form"
+          description="Place this link on your website so visitors can submit an inquiry. Submissions create a new pipeline item in the Inquiry stage."
+        >
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-charcoal">
+                Public inquiry URL
+              </label>
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={inquiryFormUrl}
+                  className={inputClass + " flex-1 min-w-0"}
+                  aria-label="Inquiry form URL"
+                />
+                <button
+                  type="button"
+                  onClick={copyLink}
+                  className="inline-flex items-center gap-2 rounded-button border border-border-light bg-white px-3 py-2.5 text-sm font-medium text-charcoal hover:bg-sand-warm"
+                >
+                  <Copy className="h-4 w-4" strokeWidth={1.5} />
+                  {linkCopied ? "Copied" : "Copy link"}
+                </button>
+                <a
+                  href={inquiryFormUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-button border border-border-light bg-white px-3 py-2.5 text-sm font-medium text-charcoal hover:bg-sand-warm"
+                >
+                  <ExternalLink className="h-4 w-4" strokeWidth={1.5} />
+                  Open
+                </a>
+              </div>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-charcoal">
+                Embed on your site
+              </label>
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={embedSnippet}
+                  className={inputClass + " flex-1 min-w-0 font-mono text-xs"}
+                  aria-label="Embed code"
+                />
+                <button
+                  type="button"
+                  onClick={copyEmbed}
+                  className="inline-flex items-center gap-2 rounded-button border border-border-light bg-white px-3 py-2.5 text-sm font-medium text-charcoal hover:bg-sand-warm"
+                >
+                  <Code className="h-4 w-4" strokeWidth={1.5} />
+                  {embedCopied ? "Copied" : "Copy embed code"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </SettingsCard>
+
         <div className="mb-6 flex gap-2">
           <button
             type="button"

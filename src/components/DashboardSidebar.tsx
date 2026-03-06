@@ -6,7 +6,6 @@ import {
   LayoutDashboard,
   Users,
   Kanban,
-  Bell,
   LogOut,
   Settings,
 } from "lucide-react";
@@ -21,7 +20,6 @@ const navItems = [
   { href: "/dashboard", label: "Home", icon: LayoutDashboard },
   { href: "/dashboard/clients", label: "Clients", icon: Users },
   { href: "/dashboard/pipeline", label: "Pipeline", icon: Kanban },
-  { href: "/dashboard/reminders", label: "Reminders", icon: Bell },
 ];
 
 export function DashboardSidebar() {
