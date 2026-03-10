@@ -69,7 +69,7 @@ export default function HomePage() {
             <Link href="#about" className="hover:text-charcoal">About</Link>
             <Link href="#services" className="hover:text-charcoal">Services</Link>
             <Link href="#pricing" className="hover:text-charcoal">Pricing</Link>
-            <Link href="#contact" className="rounded-lg bg-navy px-4 py-2 font-medium text-white hover:bg-navy-dark">Contact Us</Link>
+            <Link href="/contact" className="rounded-lg bg-navy px-4 py-2 font-medium text-white hover:bg-navy-dark">Contact Us</Link>
           </nav>
         </div>
       </header>
@@ -290,14 +290,16 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="bg-navy px-6 py-8 text-white">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4">
-          <span className="text-sm text-white/80">© 2023 Clear Journey. All rights reserved.</span>
           <nav className="flex gap-6 text-sm">
             <Link href="/" className="hover:opacity-90">Home</Link>
             <Link href="#about" className="hover:opacity-90">About</Link>
             <Link href="#services" className="hover:opacity-90">Services</Link>
             <Link href="#pricing" className="hover:opacity-90">Pricing</Link>
-            <Link href="#contact" className="hover:opacity-90">Contact</Link>
+            <Link href="/contact" className="hover:opacity-90">Contact &amp; Feedback</Link>
+            <Link href="/privacy" className="hover:opacity-90">Privacy</Link>
+            <Link href="/terms" className="hover:opacity-90">Terms</Link>
           </nav>
+          <span className="text-sm text-white/80">© 2026 Clear Journey. All rights reserved.</span>
         </div>
       </footer>
     </div>

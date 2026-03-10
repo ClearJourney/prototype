@@ -15,7 +15,7 @@ const navItems = [
   { href: "/dashboard/settings/billing", label: "Billing", icon: CreditCard },
   { href: "/dashboard/settings/intake-forms", label: "Intake Forms", icon: FileText },
   { href: "/dashboard/settings/preferences", label: "Preferences", icon: Sliders },
-  { href: "/dashboard/settings/danger-zone", label: "Danger Zone", icon: AlertTriangle },
+  { href: "/dashboard/settings/account", label: "Account", icon: AlertTriangle },
 ];
 
 export function SettingsSidebar() {

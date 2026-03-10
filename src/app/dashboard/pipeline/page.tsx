@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   AddOpportunityModal,
@@ -11,8 +11,10 @@ import {
   OpportunityDrawer,
   type OpportunityDetail,
 } from "@/components/OpportunityDrawer";
+import { Info } from "lucide-react";
 import { formatValue, STAGE_WEIGHTS } from "@/lib/pipeline";
 import { getRegionalPreferences } from "@/lib/preferences";
+import type { InquiryFormData } from "@/types/secure-forms";
 
 const STAGES = [
   { id: "prospect", name: "Prospect", color: "bg-orange-500" },
@@ -32,6 +34,8 @@ type Prospect = {
   interestNote: string;
   date: string;
 };
+
+type ClientProfileStatus = "not_requested" | "sent" | "completed";
 
 type Opportunity = {
   id: string;
@@ -58,7 +62,14 @@ type Opportunity = {
   needsAttention?: boolean;
   createdAt?: string; // for inquiry cards
   journeyType?: string;
+  inquiryPayload?: InquiryFormData;
+  clientProfileStatus?: ClientProfileStatus;
+  clientProfileFormLink?: string | null;
+  clientProfileRequestedAt?: string | null;
+  clientProfileCompletedAt?: string | null;
 };
+
+const CLIENT_PROFILE_STAGES = ["inquiry", "research"] as const;
 
 const MOCK_PROSPECTS: Prospect[] = [
   {
@@ -89,6 +100,7 @@ const MOCK_OPPORTUNITIES: Opportunity[] = [
     initials: "TF",
     avatarColor: "bg-blue-500",
     stageId: "inquiry",
+    clientProfileStatus: "not_requested",
   },
   {
     id: "o2",
@@ -101,6 +113,9 @@ const MOCK_OPPORTUNITIES: Opportunity[] = [
     initials: "MW",
     avatarColor: "bg-red-500",
     stageId: "inquiry",
+    clientProfileStatus: "sent",
+    clientProfileFormLink: "https://example.com/forms/profile/ABC123",
+    clientProfileRequestedAt: "2025-03-08T10:00:00.000Z",
   },
   {
     id: "o3",
@@ -114,6 +129,8 @@ const MOCK_OPPORTUNITIES: Opportunity[] = [
     initials: "WA",
     avatarColor: "bg-amber-500",
     stageId: "research",
+    clientProfileStatus: "completed",
+    clientProfileCompletedAt: "2025-03-09T14:30:00.000Z",
   },
   {
     id: "o4",
@@ -172,9 +189,12 @@ const DAYS_COLORS = {
   purple: "text-charcoal bg-sand-warm",
 };
 
-export default function PipelinePage() {
+// Use a fixed default for initial render so server and client match (avoid hydration error).
+const FALLBACK_CURRENCY = "USD";
+
+function PipelinePageContent() {
   const searchParams = useSearchParams();
-  const defaultCurrency = getRegionalPreferences().currency;
+  const [currency, setCurrency] = useState(FALLBACK_CURRENCY);
   const [opportunityModalOpen, setOpportunityModalOpen] = useState(false);
   const [prospectModalOpen, setProspectModalOpen] = useState(false);
   const [addToStage, setAddToStage] = useState<string | null>(null);
@@ -182,10 +202,24 @@ export default function PipelinePage() {
   const [prospects, setProspects] = useState<Prospect[]>(MOCK_PROSPECTS);
   const [opportunities, setOpportunities] = useState<Opportunity[]>(MOCK_OPPORTUNITIES);
   const [selectedOpportunityId, setSelectedOpportunityId] = useState<string | null>(null);
+  const [editingOpportunityId, setEditingOpportunityId] = useState<string | null>(null);
   const [draggedOpportunityId, setDraggedOpportunityId] = useState<string | null>(null);
   const [dragOverStageId, setDragOverStageId] = useState<string | null>(null);
+  const [prospectInfoOpen, setProspectInfoOpen] = useState(false);
+  const prospectInfoRef = useRef<HTMLDivElement>(null);
 
   const opportunityParam = searchParams.get("opportunity");
+
+  useEffect(() => {
+    if (!prospectInfoOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (prospectInfoRef.current && !prospectInfoRef.current.contains(e.target as Node)) {
+        setProspectInfoOpen(false);
+      }
+    };
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [prospectInfoOpen]);
 
   useEffect(() => {
     if (!opportunityParam || !opportunities.length) return;
@@ -206,7 +240,31 @@ export default function PipelinePage() {
   }, [opportunityParam, opportunities]);
 
   const mergeApiOpportunities = (
-    data: { opportunities?: Array<{ id: string; clientName: string; stageId: string; value: string; valueNum: number; nextStep: string | null; nextStepDue?: string; daysInStage: number; initials: string; avatarColor: string; budget?: string; where?: string; journeyType?: string; notes?: string; createdAt?: string; needsAttention?: boolean }> }
+    data: {
+      opportunities?: Array<{
+        id: string;
+        clientName: string;
+        stageId: string;
+        value: string;
+        valueNum: number;
+        nextStep: string | null;
+        nextStepDue?: string;
+        daysInStage: number;
+        initials: string;
+        avatarColor: string;
+        budget?: string;
+        where?: string;
+        journeyType?: string;
+        notes?: string;
+        createdAt?: string;
+        needsAttention?: boolean;
+        inquiryPayload?: InquiryFormData;
+        clientProfileStatus?: ClientProfileStatus;
+        clientProfileFormLink?: string | null;
+        clientProfileRequestedAt?: string | null;
+        clientProfileCompletedAt?: string | null;
+      }>;
+    }
   ) => {
     if (!data?.opportunities?.length) return;
     const fromApi = data.opportunities.map((o) => ({
@@ -226,11 +284,19 @@ export default function PipelinePage() {
       notes: o.notes,
       createdAt: o.createdAt,
       needsAttention: o.needsAttention,
+      inquiryPayload: o.inquiryPayload,
+      clientProfileStatus: o.clientProfileStatus,
+      clientProfileFormLink: o.clientProfileFormLink,
+      clientProfileRequestedAt: o.clientProfileRequestedAt,
+      clientProfileCompletedAt: o.clientProfileCompletedAt,
     }));
     setOpportunities((prev) => {
-      const ids = new Set(prev.map((p) => p.id));
-      const newOnes = fromApi.filter((o) => !ids.has(o.id));
-      return newOnes.length ? [...prev, ...newOnes] : prev;
+      const byId = new Map(prev.map((p) => [p.id, p]));
+      for (const o of fromApi) {
+        const existing = byId.get(o.id);
+        byId.set(o.id, existing ? { ...existing, ...o } : o);
+      }
+      return Array.from(byId.values());
     });
   };
 
@@ -243,6 +309,10 @@ export default function PipelinePage() {
 
   useEffect(() => {
     fetchOpportunities();
+  }, []);
+
+  useEffect(() => {
+    setCurrency(getRegionalPreferences().currency);
   }, []);
 
   useEffect(() => {
@@ -311,12 +381,28 @@ export default function PipelinePage() {
   const openAddOpportunity = (stageId?: string) => {
     setAddToStage(stageId ?? null);
     setConvertFromProspect(null);
+    setEditingOpportunityId(null);
     setOpportunityModalOpen(true);
   };
 
   const openConvertModal = (prospect: Prospect) => {
     setConvertFromProspect(prospect);
     setAddToStage("inquiry");
+    setEditingOpportunityId(null);
+    setOpportunityModalOpen(true);
+  };
+
+  /** Parse "Call • Due Dec 15" -> "Call" for the next step select */
+  const parseNextStepAction = (nextStep: string | null): string => {
+    if (!nextStep) return "";
+    const idx = nextStep.indexOf(" • Due ");
+    return idx >= 0 ? nextStep.slice(0, idx) : nextStep;
+  };
+
+  const openEditOpportunity = (detail: OpportunityDetail) => {
+    setEditingOpportunityId(detail.id);
+    setAddToStage(null);
+    setConvertFromProspect(null);
     setOpportunityModalOpen(true);
   };
 
@@ -344,23 +430,45 @@ export default function PipelinePage() {
       : null;
     const name = data.client || data.tripName || "New Opportunity";
 
-    setOpportunities((prev) => [
-      ...prev,
-      {
-        id: `o${Date.now()}`,
-        clientName: name,
-        tripName: data.tripName || undefined,
-        value: valueStr,
-        valueNum,
-        currency,
-        nextStep: nextStepStr,
-        nextStepDue: data.date || undefined,
-        daysInStage: 0,
-        initials: name.slice(0, 2).toUpperCase().replace(/\s/g, "") || "N",
-        avatarColor: "bg-navy",
-        stageId,
-      },
-    ]);
+    if (editingOpportunityId) {
+      setOpportunities((prev) =>
+        prev.map((o) =>
+          o.id === editingOpportunityId
+            ? {
+                ...o,
+                clientName: name,
+                tripName: data.tripName || undefined,
+                value: valueStr,
+                valueNum,
+                currency,
+                nextStep: nextStepStr,
+                nextStepDue: data.date || undefined,
+                stageId,
+                notes: data.notes || undefined,
+              }
+            : o
+        )
+      );
+      setEditingOpportunityId(null);
+    } else {
+      setOpportunities((prev) => [
+        ...prev,
+        {
+          id: `o${Date.now()}`,
+          clientName: name,
+          tripName: data.tripName || undefined,
+          value: valueStr,
+          valueNum,
+          currency,
+          nextStep: nextStepStr,
+          nextStepDue: data.date || undefined,
+          daysInStage: 0,
+          initials: name.slice(0, 2).toUpperCase().replace(/\s/g, "") || "N",
+          avatarColor: "bg-navy",
+          stageId,
+        },
+      ]);
+    }
 
     if (convertFromProspect) {
       setProspects((prev) => prev.filter((p) => p.id !== convertFromProspect.id));
@@ -401,7 +509,7 @@ export default function PipelinePage() {
       id: o.id,
       clientName: o.clientName,
       tripName: o.tripName ?? "",
-      value: formatValue(o.valueNum, o.currency ?? defaultCurrency),
+      value: formatValue(o.valueNum, o.currency ?? currency),
       valueNum: o.valueNum,
       stageId: o.stageId,
       stageName: stage?.name ?? o.stageId,
@@ -418,8 +526,52 @@ export default function PipelinePage() {
       decisionMaker: o.decisionMaker,
       notes: o.notes,
       travelers: o.travelers,
+      inquiryPayload: o.inquiryPayload,
+      clientProfileStatus: o.clientProfileStatus ?? "not_requested",
+      clientProfileFormLink: o.clientProfileFormLink,
+      clientProfileRequestedAt: o.clientProfileRequestedAt,
+      clientProfileCompletedAt: o.clientProfileCompletedAt,
     };
-  }, [selectedOpportunityId, opportunities, defaultCurrency]);
+  }, [selectedOpportunityId, opportunities, currency]);
+
+  const handleClientProfileLinkGenerated = (opportunityId: string, link: string) => {
+    setOpportunities((prev) =>
+      prev.map((o) =>
+        o.id === opportunityId
+          ? {
+              ...o,
+              clientProfileStatus: "sent" as const,
+              clientProfileFormLink: link,
+              clientProfileRequestedAt: new Date().toISOString(),
+            }
+          : o
+      )
+    );
+  };
+
+  const updateOpportunityClientProfileFromApi = (opportunityId: string) => {
+    fetch("/api/opportunities")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        const o = data?.opportunities?.find((x: { id: string }) => x.id === opportunityId);
+        if (o?.clientProfileStatus) {
+          setOpportunities((prev) =>
+            prev.map((opp) =>
+              opp.id === opportunityId
+                ? {
+                    ...opp,
+                    clientProfileStatus: o.clientProfileStatus,
+                    clientProfileFormLink: o.clientProfileFormLink ?? opp.clientProfileFormLink,
+                    clientProfileRequestedAt: o.clientProfileRequestedAt ?? opp.clientProfileRequestedAt,
+                    clientProfileCompletedAt: o.clientProfileCompletedAt ?? opp.clientProfileCompletedAt,
+                  }
+                : opp
+            )
+          );
+        }
+      })
+      .catch(() => {});
+  };
 
   const handleMarkDone = (id: string) => {
     setOpportunities((prev) =>
@@ -516,22 +668,11 @@ export default function PipelinePage() {
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <select className="rounded-button border border-border-light bg-white px-3 py-2 text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-navy/10">
-            <option>2024 Pipeline</option>
-          </select>
-          <select className="rounded-button border border-border-light bg-white px-3 py-2 text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-navy/10">
-            <option>All Time</option>
-          </select>
-          <select className="rounded-button border border-border-light bg-white px-3 py-2 text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-navy/10">
-            <option>USD</option>
-          </select>
-          <input
-            type="search"
-            placeholder="Search opportunities..."
-            className="w-48 rounded-button border border-border-light bg-white px-3 py-2 text-sm text-charcoal placeholder-charcoal-light focus:outline-none focus:ring-2 focus:ring-navy/10"
-          />
-        </div>
+        <input
+          type="search"
+          placeholder="Search opportunities..."
+          className="w-48 rounded-button border border-border-light bg-white px-3 py-2 text-sm text-charcoal placeholder-charcoal-light focus:outline-none focus:ring-2 focus:ring-navy/10"
+        />
         <button
           type="button"
           onClick={() => openAddOpportunity()}
@@ -555,19 +696,19 @@ export default function PipelinePage() {
           },
           {
             variant: "default" as const,
-            value: formatValue(totalDealValue, defaultCurrency),
+            value: formatValue(totalDealValue, currency),
             label: "Total Deal Value",
             isCurrency: true,
           },
           {
             variant: "default" as const,
-            value: formatValue(Math.round(weightedForecast), defaultCurrency),
+            value: formatValue(Math.round(weightedForecast), currency),
             label: "Weighted Forecast",
             isCurrency: true,
           },
           {
             variant: "default" as const,
-            value: formatValue(averageDealSize, defaultCurrency),
+            value: formatValue(averageDealSize, currency),
             label: "Average Deal Size",
             isCurrency: true,
           },
@@ -578,7 +719,7 @@ export default function PipelinePage() {
           },
           {
             variant: "alert" as const,
-            value: formatValue(340000, defaultCurrency),
+            value: formatValue(340000, currency),
             label: "Outstanding Balances",
             isCurrency: true,
           },
@@ -594,7 +735,7 @@ export default function PipelinePage() {
           },
           {
             variant: "success" as const,
-            value: formatValue(completedThisMonth, defaultCurrency),
+            value: formatValue(completedThisMonth, currency),
             label: "Completed This Month",
             isCurrency: true,
           },
@@ -661,18 +802,35 @@ export default function PipelinePage() {
             <div className="flex items-center gap-2">
               <span className={`h-2 w-2 rounded-full ${stage.color}`} />
               <span className="font-semibold text-charcoal">{stage.name}</span>
+              {stage.id === "prospect" && (
+                <div className="relative flex items-center" ref={prospectInfoRef}>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setProspectInfoOpen((open) => !open);
+                    }}
+                    className="flex items-center text-charcoal-light transition-colors hover:text-charcoal focus:outline-none focus:ring-2 focus:ring-teal-accent/50 focus:ring-offset-1 rounded"
+                    aria-label="Prospect stage info"
+                    title="For future clients who've shown interest. These don't count toward any totals or pipeline metrics until converted."
+                  >
+                    <Info className="h-4 w-4 flex-shrink-0" strokeWidth={1.5} />
+                  </button>
+                  {prospectInfoOpen && (
+                    <div className="absolute left-0 top-full z-50 mt-1.5 w-64 rounded-card border border-border-light bg-white p-3 shadow-soft text-left">
+                      <p className="text-sm text-charcoal">
+                        For future clients who&apos;ve shown interest. These don&apos;t count toward any totals or pipeline metrics until converted.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
               <span className="text-sm text-charcoal-light">
                 {stage.id === "prospect"
                   ? prospects.length
                   : getOpportunitiesForStage(stage.id).length}
               </span>
             </div>
-            {stage.id === "inquiry" && (
-              <p className="mt-1.5 text-xs text-charcoal-light">
-                For future clients who&apos;ve shown interest — don&apos;t count toward
-                totals until converted.
-              </p>
-            )}
 
             <div className="mt-4 space-y-2">
               {stage.id === "prospect" &&
@@ -727,7 +885,7 @@ export default function PipelinePage() {
                               </p>
                           )}
                           <p className="text-sm font-medium text-charcoal">
-                            {formatValue(o.valueNum, o.currency ?? defaultCurrency)}
+                            {formatValue(o.valueNum, o.currency ?? currency)}
                           </p>
                           <p
                             className={`text-xs ${
@@ -755,6 +913,18 @@ export default function PipelinePage() {
                               </span>
                             )}
                           </div>
+                          {CLIENT_PROFILE_STAGES.includes(o.stageId as (typeof CLIENT_PROFILE_STAGES)[number]) && (
+                            <p className="mt-1.5 text-[11px] text-charcoal-light/90">
+                              Client Profile{" "}
+                              <span className="font-medium">
+                                {o.clientProfileStatus === "completed"
+                                  ? "Completed ✓"
+                                  : o.clientProfileStatus === "sent"
+                                    ? "Sent"
+                                    : "Not requested"}
+                              </span>
+                            </p>
+                          )}
                         </div>
                         <span
                           className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${o.avatarColor} text-xs font-medium text-white`}
@@ -792,32 +962,55 @@ export default function PipelinePage() {
         onClose={() => {
           setOpportunityModalOpen(false);
           setConvertFromProspect(null);
+          setEditingOpportunityId(null);
         }}
+        editingOpportunityId={editingOpportunityId}
         defaultStage={
-          addToStage === "inquiry"
-            ? "Inquiry"
-            : addToStage === "research"
-              ? "Research"
-              : addToStage === "proposal"
-                ? "Proposal Sent"
-                : addToStage === "deposit"
-                  ? "Deposit IN"
-                  : addToStage === "balance"
-                    ? "Balance Due"
-                    : addToStage === "travel"
-                      ? "Travel"
-                      : addToStage === "completed"
-                        ? "Completed"
-                        : "Inquiry"
+          editingOpportunityId
+            ? (() => {
+                const o = opportunities.find((x) => x.id === editingOpportunityId);
+                return o ? STAGES.find((s) => s.id === o.stageId)?.name ?? "Inquiry" : "Inquiry";
+              })()
+            : addToStage === "inquiry"
+              ? "Inquiry"
+              : addToStage === "research"
+                ? "Research"
+                : addToStage === "proposal"
+                  ? "Proposal Sent"
+                  : addToStage === "deposit"
+                    ? "Deposit IN"
+                    : addToStage === "balance"
+                      ? "Balance Due"
+                      : addToStage === "travel"
+                        ? "Travel"
+                        : addToStage === "completed"
+                          ? "Completed"
+                          : "Inquiry"
         }
         initialValues={
-          convertFromProspect
-            ? {
-                clientName: convertFromProspect.clientName,
-                tripName: `${convertFromProspect.clientName} Trip`,
-                notes: convertFromProspect.interestNote,
-              }
-            : undefined
+          editingOpportunityId
+            ? (() => {
+                const o = opportunities.find((x) => x.id === editingOpportunityId);
+                if (!o) return undefined;
+                return {
+                  clientName: o.clientName,
+                  tripName: o.tripName ?? "",
+                  value: String(o.valueNum),
+                  currency: o.currency ?? "USD",
+                  stage: STAGES.find((s) => s.id === o.stageId)?.name ?? "Inquiry",
+                  nextStep: parseNextStepAction(o.nextStep),
+                  date: o.nextStepDue ?? "",
+                  time: "",
+                  notes: o.notes ?? "",
+                };
+              })()
+            : convertFromProspect
+              ? {
+                  clientName: convertFromProspect.clientName,
+                  tripName: `${convertFromProspect.clientName} Trip`,
+                  notes: convertFromProspect.interestNote,
+                }
+              : undefined
         }
         onSave={handleSaveOpportunity}
       />
@@ -837,13 +1030,30 @@ export default function PipelinePage() {
           <OpportunityDrawer
             opportunity={selectedOpportunity}
             onClose={() => setSelectedOpportunityId(null)}
+            onEdit={openEditOpportunity}
             onMarkDone={handleMarkDone}
             onSaveNextStep={handleSaveNextStep}
             onMarkLost={handleMarkLost}
             onMarkWon={handleMarkWon}
+            onClientProfileLinkGenerated={handleClientProfileLinkGenerated}
+            onRefreshClientProfile={updateOpportunityClientProfileFromApi}
           />
         </>
       )}
     </div>
+  );
+}
+
+export default function PipelinePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[200px] items-center justify-center text-charcoal-light">
+          Loading…
+        </div>
+      }
+    >
+      <PipelinePageContent />
+    </Suspense>
   );
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
+import { DashboardUserSync } from "@/components/DashboardUserSync";
 import { OnboardingGate } from "@/components/OnboardingGate";
 import { Bell } from "lucide-react";
 
@@ -11,6 +12,7 @@ export default function DashboardLayout({
 }) {
   return (
     <OnboardingGate>
+    <DashboardUserSync />
     <div className="flex min-h-screen flex-col bg-sand">
       <header className="flex items-center justify-between bg-white px-6 py-4 shadow-soft">
         <Link href="/dashboard" className="flex items-center">
@@ -42,16 +44,16 @@ export default function DashboardLayout({
           <div className="flex-1 p-8">{children}</div>
 
           <footer className="flex flex-wrap items-center gap-6 border-t border-border-light/80 bg-white px-8 py-4 text-sm text-charcoal-light">
-            <Link href="/help" className="hover:text-charcoal">
-              Help
-            </Link>
             <Link href="/contact" className="hover:text-charcoal">
-              Contact
+              Contact &amp; Feedback
             </Link>
             <Link href="/privacy" className="hover:text-charcoal">
               Privacy
             </Link>
-            <span>© 2025 Clear Journey. All rights reserved.</span>
+            <Link href="/terms" className="hover:text-charcoal">
+              Terms
+            </Link>
+            <span className="ml-auto">© 2026 Clear Journey. All rights reserved.</span>
           </footer>
         </main>
       </div>

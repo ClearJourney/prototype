@@ -3,45 +3,68 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 
-const CANCELLATION_REASONS = [
-  "Not using it enough",
-  "Too expensive",
-  "Missing features",
-  "Switching systems",
-  "Other",
-];
-
-type Step = 1 | 2 | 3;
+type Step = 1 | 2;
 
 type Props = {
   isOpen: boolean;
   onClose: () => void;
   accessEndDate: string; // e.g. "March 15, 2026"
   onConfirmCancellation: () => void;
+  /** Called when user chooses "Claim 30-Day Extension" */
+  onClaimExtension?: () => void;
+  /** Called when user chooses "Switch to 50% Off" */
+  onSwitchToDiscount?: () => void;
+  /** URL to open when user chooses "Book a 15-Min Call" (opens in new tab) */
+  bookingLink?: string;
 };
+
+const RETENTION_OPTIONS = [
+  {
+    id: "extension" as const,
+    title: "Claim 30-Day Extension",
+    description: "Take another month on us while you decide.",
+  },
+  {
+    id: "discount" as const,
+    title: "Switch to 50% Off",
+    description: "Stay with Clear Journey at half price for the next three months.",
+  },
+  {
+    id: "call" as const,
+    title: "Book a 15-Min Call",
+    description: "If something isn't working as expected, we'd be happy to help.",
+  },
+];
 
 export function CancelMembershipModal({
   isOpen,
   onClose,
   accessEndDate,
   onConfirmCancellation,
+  onClaimExtension,
+  onSwitchToDiscount,
+  bookingLink,
 }: Props) {
   const [step, setStep] = useState<Step>(1);
-  const [reason, setReason] = useState("");
-  const [otherText, setOtherText] = useState("");
 
   if (!isOpen) return null;
 
   const handleClose = () => {
     setStep(1);
-    setReason("");
-    setOtherText("");
     onClose();
   };
 
   const handleConfirm = () => {
     onConfirmCancellation();
     handleClose();
+  };
+
+  const handleOptionClick = (option: (typeof RETENTION_OPTIONS)[number]) => {
+    if (option.id === "extension") onClaimExtension?.();
+    else if (option.id === "discount") onSwitchToDiscount?.();
+    else if (option.id === "call" && bookingLink) {
+      window.open(bookingLink, "_blank", "noopener,noreferrer");
+    }
   };
 
   return (
@@ -53,8 +76,7 @@ export function CancelMembershipModal({
         <div className="flex items-start justify-between">
           <h2 className="text-lg font-semibold text-charcoal">
             {step === 1 && "We'd hate to see you go."}
-            {step === 2 && "What's the main reason you're cancelling?"}
-            {step === 3 && "Confirm cancellation"}
+            {step === 2 && "Confirm cancellation"}
           </h2>
           <button
             type="button"
@@ -66,37 +88,34 @@ export function CancelMembershipModal({
           </button>
         </div>
 
-        {/* Step 1: Retention offers */}
+        {/* Step 1: Retention options */}
         {step === 1 && (
           <>
-            <p className="mt-2 text-sm text-charcoal-light">
+            <p className="mt-3 text-sm text-charcoal-light">
               Before you cancel, here are a few options that may help.
             </p>
             <div className="mt-6 space-y-3">
-              <button
-                type="button"
-                className="block w-full rounded-button border border-border-light bg-white px-4 py-3 text-left text-sm font-medium text-charcoal transition-colors hover:bg-sand-warm"
-              >
-                Claim 30-Day Extension
-              </button>
-              <button
-                type="button"
-                className="block w-full rounded-button border border-border-light bg-white px-4 py-3 text-left text-sm font-medium text-charcoal transition-colors hover:bg-sand-warm"
-              >
-                Switch to 50% Off
-              </button>
-              <button
-                type="button"
-                className="block w-full rounded-button border border-border-light bg-white px-4 py-3 text-left text-sm font-medium text-charcoal transition-colors hover:bg-sand-warm"
-              >
-                Book a 15-Min Call
-              </button>
+              {RETENTION_OPTIONS.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => handleOptionClick(option)}
+                  className="block w-full rounded-card border border-border-light bg-white px-4 py-3.5 text-left transition-colors hover:border-charcoal-light/30 hover:bg-sand-warm/50"
+                >
+                  <span className="block text-sm font-medium text-charcoal">
+                    {option.title}
+                  </span>
+                  <span className="mt-0.5 block text-xs text-charcoal-light">
+                    {option.description}
+                  </span>
+                </button>
+              ))}
             </div>
-            <div className="mt-6 border-t border-border-light pt-4">
+            <div className="mt-6 border-t border-border-light pt-5">
               <button
                 type="button"
                 onClick={() => setStep(2)}
-                className="text-sm text-charcoal-light underline hover:text-charcoal"
+                className="text-xs text-charcoal-light underline decoration-charcoal-light/50 hover:text-charcoal hover:decoration-charcoal"
               >
                 Continue to cancel
               </button>
@@ -104,60 +123,10 @@ export function CancelMembershipModal({
           </>
         )}
 
-        {/* Step 2: Reason capture */}
+        {/* Step 2: Final confirmation */}
         {step === 2 && (
           <>
-            <div className="mt-5 space-y-2">
-              {CANCELLATION_REASONS.map((r) => (
-                <label
-                  key={r}
-                  className="flex cursor-pointer items-center gap-3 rounded-button border border-border-light bg-white px-3 py-2.5 has-[:checked]:border-navy/30 has-[:checked]:bg-navy/5"
-                >
-                  <input
-                    type="radio"
-                    name="reason"
-                    value={r}
-                    checked={reason === r}
-                    onChange={() => setReason(r)}
-                    className="h-4 w-4 border-border-light text-navy focus:ring-navy/20"
-                  />
-                  <span className="text-sm text-charcoal">{r}</span>
-                </label>
-              ))}
-            </div>
-            {reason === "Other" && (
-              <textarea
-                value={otherText}
-                onChange={(e) => setOtherText(e.target.value)}
-                placeholder="Please specify"
-                rows={2}
-                className="mt-3 w-full rounded-button border border-border-light bg-white px-3 py-2.5 text-sm text-charcoal placeholder:text-charcoal-light/60 focus:outline-none focus:ring-2 focus:ring-navy/15"
-              />
-            )}
-            <div className="mt-6 flex justify-between gap-3">
-              <button
-                type="button"
-                onClick={() => setStep(1)}
-                className="rounded-button border border-border-light px-4 py-2.5 text-sm font-medium text-charcoal transition-colors hover:bg-sand-warm"
-              >
-                Back
-              </button>
-              <button
-                type="button"
-                onClick={() => setStep(3)}
-                disabled={!reason || (reason === "Other" && !otherText.trim())}
-                className="rounded-button bg-navy px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-navy-dark disabled:opacity-50"
-              >
-                Continue
-              </button>
-            </div>
-          </>
-        )}
-
-        {/* Step 3: Confirm */}
-        {step === 3 && (
-          <>
-            <p className="mt-2 text-sm text-charcoal-light">
+            <p className="mt-3 text-sm text-charcoal-light">
               Your access will remain active until {accessEndDate}.
             </p>
             <div className="mt-6 flex justify-end gap-3">

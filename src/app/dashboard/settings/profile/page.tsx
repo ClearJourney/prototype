@@ -16,8 +16,6 @@ type ProfileFormData = {
   businessName: string;
   businessEmail: string;
   phoneNumber: string;
-  businessWebsite: string;
-  aboutBrand: string;
   logoUrl: string | null;
 };
 
@@ -26,8 +24,6 @@ const defaultForm: ProfileFormData = {
   businessName: "Clear Journey Travel",
   businessEmail: "liam@clearjourney.example",
   phoneNumber: "+1 555 123 4567",
-  businessWebsite: "https://clearjourney.example",
-  aboutBrand: "We craft personalized travel experiences for discerning clients.",
   logoUrl: null,
 };
 
@@ -126,18 +122,6 @@ export default function ProfileSettingsPage() {
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-charcoal">
-                  Business Website <span className="text-charcoal-light">(optional)</span>
-                </label>
-                <input
-                  type="url"
-                  value={form.businessWebsite}
-                  onChange={handleChange("businessWebsite")}
-                  className="w-full max-w-md rounded-button border border-border-light bg-white px-3 py-2.5 text-charcoal placeholder:text-charcoal-light/60 focus:outline-none focus:ring-2 focus:ring-navy/15"
-                  placeholder="https://"
-                />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-charcoal">
                   Logo
                 </label>
                 <input
@@ -170,18 +154,6 @@ export default function ProfileSettingsPage() {
                     Upload logo
                   </button>
                 </div>
-              </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-charcoal">
-                  About Your Brand <span className="text-charcoal-light">(optional)</span>
-                </label>
-                <textarea
-                  value={form.aboutBrand}
-                  onChange={handleChange("aboutBrand")}
-                  rows={3}
-                  className="w-full max-w-xl rounded-button border border-border-light bg-white px-3 py-2.5 text-charcoal placeholder:text-charcoal-light/60 focus:outline-none focus:ring-2 focus:ring-navy/15"
-                  placeholder="Short intro copy used in intake forms."
-                />
               </div>
             </div>
             <div className="mt-8">

@@ -50,7 +50,7 @@ export default function PreferencesSettingsPage() {
     <>
       <SettingsPanel
         title="Preferences"
-        description="System defaults and notification preferences."
+        description="System defaults for currency, timezone, and date display."
       >
         <form onSubmit={handleSubmit}>
           <SettingsCard
@@ -142,41 +142,6 @@ export default function PreferencesSettingsPage() {
                   className={inputClass}
                 />
               </div>
-            </div>
-          </SettingsCard>
-
-          <SettingsCard
-            title="Email notifications"
-            description="Choose which emails you receive."
-          >
-            <div className="space-y-3">
-              <label className="flex cursor-pointer items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={form.emailNewInquiry}
-                  onChange={handleChange("emailNewInquiry")}
-                  className="h-4 w-4 rounded border-border-light text-navy focus:ring-navy/20"
-                />
-                <span className="text-sm text-charcoal">New inquiry submitted</span>
-              </label>
-              <label className="flex cursor-pointer items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={form.emailReminders}
-                  onChange={handleChange("emailReminders")}
-                  className="h-4 w-4 rounded border-border-light text-navy focus:ring-navy/20"
-                />
-                <span className="text-sm text-charcoal">Reminders</span>
-              </label>
-              <label className="flex cursor-pointer items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={form.emailMarketing}
-                  onChange={handleChange("emailMarketing")}
-                  className="h-4 w-4 rounded border-border-light text-navy focus:ring-navy/20"
-                />
-                <span className="text-sm text-charcoal">Product updates & tips</span>
-              </label>
             </div>
           </SettingsCard>
 

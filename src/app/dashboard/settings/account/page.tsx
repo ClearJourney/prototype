@@ -14,7 +14,7 @@ async function deleteAccount(): Promise<void> {
   await new Promise((r) => setTimeout(r, 500));
 }
 
-export default function DangerZoneSettingsPage() {
+export default function AccountSettingsPage() {
   const [exporting, setExporting] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
@@ -50,8 +50,8 @@ export default function DangerZoneSettingsPage() {
   return (
     <>
       <SettingsPanel
-        title="Danger Zone"
-        description="Destructive actions. These cannot be undone."
+        title="Account"
+        description="Export your data or permanently delete your account. Destructive actions cannot be undone."
       >
         <SettingsCard
           title="Export all data"

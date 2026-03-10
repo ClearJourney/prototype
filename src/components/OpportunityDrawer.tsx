@@ -1,9 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { X } from "lucide-react";
+import { Pencil, X } from "lucide-react";
+import { ClientProfileLinkBlock } from "./ClientProfileLinkBlock";
 import { MarkLostModal } from "./MarkLostModal";
 import { getDatePlaceholder, getPreferences } from "@/lib/preferences";
+import type { InquiryFormData } from "@/types/secure-forms";
+
+export type ClientProfileStatus = "not_requested" | "sent" | "completed";
 
 const NEXT_STEP_OPTIONS = [
   "Call",
@@ -36,29 +40,47 @@ export type OpportunityDetail = {
   decisionMaker?: string;
   notes?: string;
   travelers?: { name: string; role: string }[];
+  inquiryPayload?: InquiryFormData;
+  clientProfileStatus?: ClientProfileStatus;
+  clientProfileFormLink?: string | null;
+  clientProfileRequestedAt?: string | null;
+  clientProfileCompletedAt?: string | null;
 };
 
 type Props = {
   opportunity: OpportunityDetail | null;
   onClose: () => void;
+  onEdit?: (opportunity: OpportunityDetail) => void;
   onMarkDone: (id: string) => void;
   onSaveNextStep: (id: string, action: string, dueDate: string) => void;
   onMarkLost: (id: string, reason: string) => void;
   onMarkWon: (id: string) => void;
+  onClientProfileLinkGenerated?: (id: string, link: string) => void;
+  onRefreshClientProfile?: (id: string) => void;
 };
+
+const CLIENT_PROFILE_STAGES = ["inquiry", "research"] as const;
 
 export function OpportunityDrawer({
   opportunity,
   onClose,
+  onEdit,
   onMarkDone,
   onSaveNextStep,
   onMarkLost,
   onMarkWon,
+  onClientProfileLinkGenerated,
+  onRefreshClientProfile,
 }: Props) {
   const [showAddNextStep, setShowAddNextStep] = useState(false);
   const [nextStepAction, setNextStepAction] = useState("");
   const [nextStepDue, setNextStepDue] = useState("");
   const [showMarkLostModal, setShowMarkLostModal] = useState(false);
+
+  const showClientProfile =
+    opportunity &&
+    CLIENT_PROFILE_STAGES.includes(opportunity.stageId as (typeof CLIENT_PROFILE_STAGES)[number]);
+  const clientProfileStatus = opportunity?.clientProfileStatus ?? "not_requested";
 
   if (!opportunity) return null;
 
@@ -96,17 +118,166 @@ export function OpportunityDrawer({
               {opportunity.stageName} · {opportunity.value}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-button p-2 text-charcoal-light transition-colors hover:bg-sand-warm hover:text-charcoal"
-            aria-label="Close"
-          >
-            <X className="h-5 w-5" strokeWidth={1.5} />
-          </button>
+          <div className="flex items-center gap-1">
+            {onEdit && (
+              <button
+                type="button"
+                onClick={() => onEdit(opportunity)}
+                className="rounded-button p-2 text-charcoal-light transition-colors hover:bg-sand-warm hover:text-charcoal"
+                aria-label="Edit opportunity"
+              >
+                <Pencil className="h-5 w-5" strokeWidth={1.5} />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-button p-2 text-charcoal-light transition-colors hover:bg-sand-warm hover:text-charcoal"
+              aria-label="Close"
+            >
+              <X className="h-5 w-5" strokeWidth={1.5} />
+            </button>
+          </div>
         </div>
 
         <div className="space-y-6 p-5">
+          {(() => {
+            const p = opportunity.inquiryPayload;
+            const hasDestination = p?.destination?.trim();
+            const hasTravelers = (p?.numberOfTravelers ?? 0) > 0;
+            const hasDates = p?.desiredDates?.trim();
+            const hasBudget = p?.investmentRange?.trim();
+            const hasJourneyType = p?.journeyType?.trim();
+            const hasServices =
+              Array.isArray(p?.servicesRequested) && p.servicesRequested.length > 0;
+            const hasNotes =
+              p?.whatMattersMost?.trim() || p?.additionalConsiderations?.trim();
+            const hasAnyInquiryDetail =
+              hasDestination ||
+              hasTravelers ||
+              hasDates ||
+              hasBudget ||
+              hasJourneyType ||
+              hasServices ||
+              hasNotes;
+            return p && hasAnyInquiryDetail ? (
+            <section>
+              <h3 className="text-sm font-semibold text-charcoal">Inquiry Details</h3>
+              <dl className="mt-2 space-y-2 rounded-button border border-border-light/80 bg-sand-warm/30 p-3 text-sm">
+                {hasDestination && (
+                  <>
+                    <dt className="text-charcoal-light">Destination</dt>
+                    <dd className="text-charcoal">{p.destination.trim()}</dd>
+                  </>
+                )}
+                {hasTravelers && (
+                  <>
+                    <dt className="text-charcoal-light">Number of travelers</dt>
+                    <dd className="text-charcoal">{p.numberOfTravelers}</dd>
+                  </>
+                )}
+                {hasDates && (
+                  <>
+                    <dt className="text-charcoal-light">Travel dates</dt>
+                    <dd className="text-charcoal">{p.desiredDates?.trim()}</dd>
+                  </>
+                )}
+                {hasBudget && (
+                  <>
+                    <dt className="text-charcoal-light">Budget range</dt>
+                    <dd className="text-charcoal">{p.investmentRange?.trim()}</dd>
+                  </>
+                )}
+                {hasJourneyType && (
+                  <>
+                    <dt className="text-charcoal-light">Journey type</dt>
+                    <dd className="text-charcoal">{p.journeyType.trim()}</dd>
+                  </>
+                )}
+                {hasServices && (
+                  <>
+                    <dt className="text-charcoal-light">Services requested</dt>
+                    <dd className="text-charcoal">{p.servicesRequested?.join(", ")}</dd>
+                  </>
+                )}
+                {hasNotes && (
+                  <>
+                    <dt className="text-charcoal-light">Travel style / notes</dt>
+                    <dd className="text-charcoal">
+                      {[p.whatMattersMost?.trim(), p.additionalConsiderations?.trim()]
+                        .filter(Boolean)
+                        .join(" — ")}
+                    </dd>
+                  </>
+                )}
+              </dl>
+            </section>
+            ) : null;
+          })()}
+
+          {showClientProfile && (
+            <section>
+              <h3 className="text-sm font-semibold text-charcoal">Client Profile</h3>
+              {(clientProfileStatus === "not_requested" || clientProfileStatus === "sent") && (
+                <div className="mt-2">
+                  {clientProfileStatus === "not_requested" && (
+                    <p className="mb-3 text-sm text-charcoal-light">
+                      Request your client&apos;s profile to collect traveller details. Same secure
+                      form as on the client profile page.
+                    </p>
+                  )}
+                  {clientProfileStatus === "sent" && (
+                    <p className="mb-3 text-xs text-charcoal-light">
+                      Status: <span className="font-medium text-charcoal">Sent</span>
+                    </p>
+                  )}
+                  <ClientProfileLinkBlock
+                    compact
+                    opportunityId={opportunity.id}
+                    clientName={opportunity.clientName}
+                    stageId={opportunity.stageId}
+                    initialLink={
+                      clientProfileStatus === "sent"
+                        ? opportunity.clientProfileFormLink ?? null
+                        : null
+                    }
+                    onLinkGenerated={
+                      onClientProfileLinkGenerated
+                        ? (link) => onClientProfileLinkGenerated(opportunity.id, link)
+                        : undefined
+                    }
+                  />
+                </div>
+              )}
+              {clientProfileStatus === "completed" && (
+                <div className="mt-2 space-y-1">
+                  <p className="text-xs text-charcoal-light">
+                    Status: <span className="font-medium text-success-muted">Completed ✓</span>
+                  </p>
+                  <p className="text-sm text-charcoal-light">Client profile received</p>
+                  {opportunity.clientProfileCompletedAt && (
+                    <p className="text-xs text-charcoal-light">
+                      Last updated:{" "}
+                      {new Date(opportunity.clientProfileCompletedAt).toLocaleDateString(
+                        undefined,
+                        { dateStyle: "medium" }
+                      )}
+                    </p>
+                  )}
+                  {onRefreshClientProfile && (
+                    <button
+                      type="button"
+                      onClick={() => onRefreshClientProfile(opportunity.id)}
+                      className="mt-2 text-xs font-medium text-navy hover:underline"
+                    >
+                      Refresh status
+                    </button>
+                  )}
+                </div>
+              )}
+            </section>
+          )}
+
           <section>
             <h3 className="text-sm font-semibold text-charcoal">Next Step</h3>
             {hasNoNextStep && !isClosed && (

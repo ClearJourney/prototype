@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   UserCircle,
@@ -14,6 +15,8 @@ import {
 } from "lucide-react";
 import { CollapsibleSection } from "@/components/CollapsibleSection";
 import { SecureClientFormsSection } from "@/components/SecureClientFormsSection";
+import { getClientData } from "@/lib/mock-clients";
+import { mapClientToManualProfile } from "@/lib/map-client-to-manual-profile";
 import type {
   QuickCreateData,
   ManualTraveller,
@@ -140,12 +143,17 @@ function emptyProfile(createdName: { first: string; last: string; middle: string
   };
 }
 
-export default function AddClientManualPage() {
+function AddClientManualPageContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const editId = searchParams.get("edit");
+
   const [stage, setStage] = useState<1 | 2>(1);
   const [createdClientName, setCreatedClientName] = useState<string | null>(null);
   const [quickCreate, setQuickCreate] = useState<QuickCreateData>(emptyQuickCreate());
   const [profile, setProfile] = useState<ManualClientProfile | null>(null);
   const [profileFormModalOpen, setProfileFormModalOpen] = useState(false);
+  const [editClientId, setEditClientId] = useState<string | null>(null);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     core: true,
     travellers: true,
@@ -162,6 +170,17 @@ export default function AddClientManualPage() {
   const toggleSection = (key: string) => {
     setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
   };
+
+  // When ?edit=id is present, load client and pre-fill the form (edit mode)
+  useEffect(() => {
+    if (!editId || profile !== null) return;
+    const client = getClientData(editId);
+    const initialProfile = mapClientToManualProfile(client);
+    setProfile(initialProfile);
+    setCreatedClientName(client.name);
+    setStage(2);
+    setEditClientId(editId);
+  }, [editId]);
 
   const handleQuickCreate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -380,15 +399,29 @@ export default function AddClientManualPage() {
           }
         : null
     );
-    // TODO: POST to API; then redirect or show toast
+    if (editClientId) {
+      router.push(`/dashboard/clients/${editClientId}`);
+    }
+    // TODO: POST to API; then redirect or show toast (create mode)
   };
 
   const handleSaveAndExit = () => {
     handleSaveProfile();
-    // TODO: redirect to /dashboard/clients
+    if (!editClientId) {
+      // TODO: redirect to /dashboard/clients (create mode)
+    }
   };
 
-  if (stage === 1) {
+  // Edit mode: loading client data
+  if (editId && !profile) {
+    return (
+      <div className="mx-auto max-w-3xl py-12 text-center text-charcoal-light">
+        Loading client…
+      </div>
+    );
+  }
+
+  if (stage === 1 && !editId) {
     return (
       <div className="mx-auto max-w-2xl">
         <Link
@@ -518,45 +551,51 @@ export default function AddClientManualPage() {
     );
   }
 
-  // Stage 2 – Complete Profile
+  // Stage 2 – Complete Profile (create or edit)
   if (!profile || !createdClientName) return null;
+
+  const isEditMode = Boolean(editClientId);
 
   return (
     <div className="mx-auto max-w-3xl pb-24">
       <Link
-        href="/dashboard/clients/new"
+        href={isEditMode ? `/dashboard/clients/${editClientId}` : "/dashboard/clients/new"}
         className="mb-6 inline-flex items-center gap-2 text-sm text-charcoal-light transition-colors hover:text-charcoal"
       >
         <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
-        Back to options
+        {isEditMode ? `Back to ${createdClientName}` : "Back to options"}
       </Link>
 
-      <div className="mb-2 flex items-center gap-2 rounded-lg border border-success/20 bg-success/5 px-4 py-3 text-success-muted">
-        <Check className="h-5 w-5 flex-shrink-0" strokeWidth={1.5} />
-        <span className="font-medium">{createdClientName} created successfully.</span>
-      </div>
+      {!isEditMode && (
+        <>
+          <div className="mb-2 flex items-center gap-2 rounded-lg border border-success/20 bg-success/5 px-4 py-3 text-success-muted">
+            <Check className="h-5 w-5 flex-shrink-0" strokeWidth={1.5} />
+            <span className="font-medium">{createdClientName} created successfully.</span>
+          </div>
 
-      <div className="mt-4 flex flex-wrap gap-3">
-        <button
-          type="button"
-          onClick={goToCompleteProfile}
-          className="inline-flex items-center gap-2 rounded-button border border-border-light bg-white px-4 py-2.5 text-sm font-medium text-charcoal transition-colors hover:bg-sand-warm"
-        >
-          <UserCircle className="h-4 w-4" strokeWidth={1.5} />
-          Complete Profile Manually
-        </button>
-        <button
-          type="button"
-          onClick={() => setProfileFormModalOpen(true)}
-          className="inline-flex items-center gap-2 rounded-button border border-border-light bg-white px-4 py-2.5 text-sm font-medium text-charcoal transition-colors hover:bg-sand-warm"
-        >
-          <Send className="h-4 w-4" strokeWidth={1.5} />
-          Send Secure Client Profile Form
-        </button>
-      </div>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={goToCompleteProfile}
+              className="inline-flex items-center gap-2 rounded-button border border-border-light bg-white px-4 py-2.5 text-sm font-medium text-charcoal transition-colors hover:bg-sand-warm"
+            >
+              <UserCircle className="h-4 w-4" strokeWidth={1.5} />
+              Complete Profile Manually
+            </button>
+            <button
+              type="button"
+              onClick={() => setProfileFormModalOpen(true)}
+              className="inline-flex items-center gap-2 rounded-button border border-border-light bg-white px-4 py-2.5 text-sm font-medium text-charcoal transition-colors hover:bg-sand-warm"
+            >
+              <Send className="h-4 w-4" strokeWidth={1.5} />
+              Send Secure Client Profile Form
+            </button>
+          </div>
+        </>
+      )}
 
       {/* Same modal as client page: Send Intake > Generate Client Profile Link */}
-      {profileFormModalOpen && (
+      {!isEditMode && profileFormModalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           role="dialog"
@@ -590,10 +629,12 @@ export default function AddClientManualPage() {
       )}
 
       <h1 className="mt-10 text-2xl font-semibold tracking-tight text-charcoal">
-        Complete {createdClientName}&apos;s Profile
+        {isEditMode ? `Edit ${createdClientName}'s Profile` : `Complete ${createdClientName}'s Profile`}
       </h1>
       <p className="mt-1.5 text-charcoal-light">
-        Add preferences, memberships, and documents to personalise future trips.
+        {isEditMode
+          ? "Update preferences, memberships, and documents."
+          : "Add preferences, memberships, and documents to personalise future trips."}
       </p>
 
       <div className="mt-8 space-y-4">
@@ -1748,24 +1789,49 @@ export default function AddClientManualPage() {
               onClick={handleSaveProfile}
               className="inline-flex items-center justify-center rounded-button bg-navy px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-navy-dark"
             >
-              Save Profile
+              {editClientId ? "Save" : "Save Profile"}
             </button>
-            <button
-              type="button"
-              onClick={handleSaveAndExit}
-              className="inline-flex items-center justify-center rounded-button border border-border-light bg-white px-5 py-2.5 text-sm font-medium text-charcoal transition-colors hover:bg-sand-warm"
-            >
-              Save & Exit
-            </button>
-            <Link
-              href="/dashboard/clients"
-              className="inline-flex items-center justify-center rounded-button border border-border-light bg-white px-5 py-2.5 text-sm font-medium text-charcoal-light transition-colors hover:bg-sand-warm hover:text-charcoal"
-            >
-              Skip for Now
-            </Link>
+            {editClientId ? (
+              <Link
+                href={`/dashboard/clients/${editClientId}`}
+                className="inline-flex items-center justify-center rounded-button border border-border-light bg-white px-5 py-2.5 text-sm font-medium text-charcoal transition-colors hover:bg-sand-warm"
+              >
+                Cancel
+              </Link>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={handleSaveAndExit}
+                  className="inline-flex items-center justify-center rounded-button border border-border-light bg-white px-5 py-2.5 text-sm font-medium text-charcoal transition-colors hover:bg-sand-warm"
+                >
+                  Save & Exit
+                </button>
+                <Link
+                  href="/dashboard/clients"
+                  className="inline-flex items-center justify-center rounded-button border border-border-light bg-white px-5 py-2.5 text-sm font-medium text-charcoal-light transition-colors hover:bg-sand-warm hover:text-charcoal"
+                >
+                  Skip for Now
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AddClientManualPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[200px] items-center justify-center text-charcoal-light">
+          Loading…
+        </div>
+      }
+    >
+      <AddClientManualPageContent />
+    </Suspense>
   );
 }

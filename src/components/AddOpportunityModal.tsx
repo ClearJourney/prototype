@@ -24,11 +24,25 @@ const NEXT_STEPS = [
   "Other",
 ];
 
+type InitialValues = {
+  clientName?: string;
+  tripName?: string;
+  notes?: string;
+  value?: string;
+  currency?: string;
+  stage?: string;
+  nextStep?: string;
+  date?: string;
+  time?: string;
+};
+
 type Props = {
   isOpen: boolean;
   onClose: () => void;
   defaultStage?: string;
-  initialValues?: { clientName?: string; tripName?: string; notes?: string };
+  /** When set, modal is in edit mode: title "Edit Opportunity", button "Save", and fields pre-filled from initialValues */
+  editingOpportunityId?: string | null;
+  initialValues?: InitialValues;
   onSave?: (data: OpportunityFormData) => void;
 };
 
@@ -48,28 +62,46 @@ export function AddOpportunityModal({
   isOpen,
   onClose,
   defaultStage = "Inquiry",
+  editingOpportunityId = null,
   initialValues,
   onSave,
 }: Props) {
+  const isEditMode = Boolean(editingOpportunityId);
   const [client, setClient] = useState(initialValues?.clientName ?? "");
   const [tripName, setTripName] = useState(initialValues?.tripName ?? "");
-  const [value, setValue] = useState("");
-  const [currency, setCurrency] = useState(() => getPreferences().currency);
-  const [stage, setStage] = useState(defaultStage);
-  const [nextStep, setNextStep] = useState("");
-  const [date, setDate] = useState("");
-  const [time, setTime] = useState("");
+  const [value, setValue] = useState(initialValues?.value ?? "");
+  const [currency, setCurrency] = useState(initialValues?.currency ?? getPreferences().currency);
+  const [stage, setStage] = useState(initialValues?.stage ?? defaultStage);
+  const [nextStep, setNextStep] = useState(initialValues?.nextStep ?? "");
+  const [date, setDate] = useState(initialValues?.date ?? "");
+  const [time, setTime] = useState(initialValues?.time ?? "");
   const [notes, setNotes] = useState(initialValues?.notes ?? "");
 
   useEffect(() => {
     if (isOpen) {
-      setCurrency(getPreferences().currency);
-      if (initialValues) {
+      if (isEditMode && initialValues) {
         setClient(initialValues.clientName ?? "");
         setTripName(initialValues.tripName ?? "");
+        setValue(initialValues.value ?? "");
+        setCurrency(initialValues.currency ?? getPreferences().currency);
+        setStage(initialValues.stage ?? defaultStage);
+        setNextStep(initialValues.nextStep ?? "");
+        setDate(initialValues.date ?? "");
+        setTime(initialValues.time ?? "");
         setNotes(initialValues.notes ?? "");
+      } else {
+        setCurrency(getPreferences().currency);
+        if (initialValues) {
+          setClient(initialValues.clientName ?? "");
+          setTripName(initialValues.tripName ?? "");
+          setNotes(initialValues.notes ?? "");
+        }
+        setStage(defaultStage);
+        setValue("");
+        setNextStep("");
+        setDate("");
+        setTime("");
       }
-      setStage(defaultStage);
     } else {
       setClient("");
       setTripName("");
@@ -79,7 +111,8 @@ export function AddOpportunityModal({
       setTime("");
       setNotes("");
     }
-  }, [isOpen, defaultStage, initialValues?.clientName, initialValues?.tripName, initialValues?.notes]);
+    // Only prefill when open state or edit id changes; avoid resetting on initialValues reference change
+  }, [isOpen, isEditMode, defaultStage, editingOpportunityId]);
 
   const handleSave = () => {
     onSave?.({
@@ -93,13 +126,15 @@ export function AddOpportunityModal({
       time,
       notes,
     });
-    setClient("");
-    setTripName("");
-    setValue("");
-    setNextStep("");
-    setDate("");
-    setTime("");
-    setNotes("");
+    if (!isEditMode) {
+      setClient("");
+      setTripName("");
+      setValue("");
+      setNextStep("");
+      setDate("");
+      setTime("");
+      setNotes("");
+    }
     onClose();
   };
 
@@ -116,7 +151,9 @@ export function AddOpportunityModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-charcoal">Add Opportunity</h2>
+          <h2 className="text-lg font-semibold text-charcoal">
+            {isEditMode ? "Edit Opportunity" : "Add Opportunity"}
+          </h2>
           <button
             type="button"
             onClick={onClose}
@@ -251,7 +288,7 @@ export function AddOpportunityModal({
             onClick={handleSave}
             className="rounded-button bg-navy px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-navy-dark"
           >
-            Save & Add
+            {isEditMode ? "Save" : "Save & Add"}
           </button>
         </div>
       </div>

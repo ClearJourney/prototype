@@ -48,24 +48,29 @@ export default function BillingSettingsPage() {
           title="Payment method"
           description="Card on file."
         >
-          <div className="flex flex-wrap items-center gap-4">
-            <span className="text-charcoal">
-              {BILLING_STUB.cardBrand} •••• {BILLING_STUB.last4}
-            </span>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                className="rounded-button border border-border-light bg-white px-4 py-2.5 text-sm font-medium text-charcoal transition-colors hover:bg-sand-warm"
-              >
-                Update Card
-              </button>
-              <button
-                type="button"
-                className="rounded-button border border-border-light bg-white px-4 py-2.5 text-sm font-medium text-charcoal transition-colors hover:bg-sand-warm"
-              >
-                View Invoices
-              </button>
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-4">
+              <span className="text-charcoal">
+                {BILLING_STUB.cardBrand} •••• {BILLING_STUB.last4}
+              </span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="rounded-button border border-border-light bg-white px-4 py-2.5 text-sm font-medium text-charcoal transition-colors hover:bg-sand-warm"
+                >
+                  Update Card
+                </button>
+                <button
+                  type="button"
+                  className="rounded-button border border-border-light bg-white px-4 py-2.5 text-sm font-medium text-charcoal transition-colors hover:bg-sand-warm"
+                >
+                  View Invoices
+                </button>
+              </div>
             </div>
+            <p className="text-sm text-charcoal-light">
+              You'll be redirected to a secure Stripe page to update your payment details, download invoices, or cancel your plan.
+            </p>
           </div>
         </SettingsCard>
 
@@ -90,6 +95,15 @@ export default function BillingSettingsPage() {
         onConfirmCancellation={() => {
           // Stub: call API to cancel
         }}
+        onClaimExtension={() => {
+          // Stub: trigger 30-day extension flow (e.g. API + close modal)
+          setCancelModalOpen(false);
+        }}
+        onSwitchToDiscount={() => {
+          // Stub: trigger 50% off flow (e.g. redirect to Stripe or API)
+          setCancelModalOpen(false);
+        }}
+        bookingLink="https://cal.example.com/clear-journey"
       />
     </>
   );
