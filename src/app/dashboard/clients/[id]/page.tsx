@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Bell, Pencil } from "lucide-react";
 import { SendIntakeDropdown } from "@/components/SendIntakeDropdown";
 import { ClientProfileTabs } from "@/components/ClientProfileTabs";
+import { ClientRemindersPanel } from "@/components/ClientRemindersPanel";
 import { getClientData } from "@/lib/mock-clients";
 
 export default function ClientProfilePage({
@@ -142,48 +143,7 @@ export default function ClientProfilePage({
         </div>
 
         {/* Right sidebar – Reminders */}
-        <aside className="h-fit rounded-xl border border-border-light bg-white p-5 lg:sticky lg:top-6">
-          <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-charcoal">Reminders</h2>
-            <button
-              type="button"
-              className="text-charcoal-light hover:text-charcoal"
-              aria-label="Add reminder"
-            >
-              +
-            </button>
-          </div>
-          {client.reminders.overdue.length > 0 && (
-            <div className="mt-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-red-600">Overdue</p>
-              <ul className="mt-2 space-y-2">
-                {client.reminders.overdue.map((r) => (
-                  <li
-                    key={r.title}
-                    className="rounded-lg border border-red-200 bg-red-50/50 p-3"
-                  >
-                    <p className="text-sm font-medium text-charcoal">{r.title}</p>
-                    <p className="text-xs text-red-600">Due: {r.due}</p>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          <div className="mt-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-charcoal-light">Upcoming</p>
-            <ul className="mt-2 space-y-2">
-              {client.reminders.upcoming.map((r) => (
-                <li
-                  key={r.title}
-                  className="rounded-lg border border-border-light bg-sand-warm/50 p-3"
-                >
-                  <p className="text-sm font-medium text-charcoal">{r.title}</p>
-                  <p className="text-xs text-charcoal-light">Due: {r.due}</p>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </aside>
+        <ClientRemindersPanel clientId={id} initialReminders={client.reminders} />
       </div>
     </div>
   );

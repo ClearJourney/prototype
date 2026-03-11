@@ -3,7 +3,6 @@ import Image from "next/image";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { DashboardUserSync } from "@/components/DashboardUserSync";
 import { OnboardingGate } from "@/components/OnboardingGate";
-import { Bell } from "lucide-react";
 
 export default function DashboardLayout({
   children,
@@ -24,16 +23,6 @@ export default function DashboardLayout({
             className="h-8 w-auto"
             priority
           />
-        </Link>
-        <Link
-          href="/dashboard/notifications"
-          className="relative rounded-button p-2 text-charcoal-light transition-colors hover:bg-sand-warm hover:text-charcoal"
-          aria-label="Notifications"
-        >
-          <Bell className="h-5 w-5" strokeWidth={1.5} />
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-error-muted/90 text-[10px] font-medium text-white">
-            3
-          </span>
         </Link>
       </header>
 

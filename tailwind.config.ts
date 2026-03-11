@@ -21,6 +21,11 @@ const config: Config = {
         "success-muted": "#15803d",
         "warning-muted": "#b45309",
         "error-muted": "#b91c1c",
+        champagne: "#f4efe8",
+        "gold-accent": "#C8A96A",
+      },
+      fontFamily: {
+        "serif-display": ["var(--font-eb-garamond)", "Georgia", "serif"],
       },
       boxShadow: {
         soft: "0 2px 8px rgba(30, 41, 59, 0.06)",
