@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { EB_Garamond } from "next/font/google";
-import { Heart, Calendar, Plane, Bell, Check, Shield, User, FileText, Sparkles, Building2, Users, Star, Headphones, RefreshCw, ChevronDown } from "lucide-react";
+import { Heart, Calendar, Plane, Bell, Check, Shield, User, FileText, Sparkles, Building2, Users, Star, Headphones, RefreshCw, ChevronDown, Instagram, Youtube } from "lucide-react";
 
 const ebGaramond = EB_Garamond({ subsets: ["latin"], display: "swap", variable: "--font-eb-garamond" });
 
@@ -609,8 +609,8 @@ export default function HomePage() {
 
       {/* Footer – refined premium close */}
       <footer className="border-t-2 border-[var(--gold-accent)] bg-[#1e293b] px-6 py-10 text-white">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-6">
-          <nav className="flex flex-wrap gap-8 text-sm">
+        <div className="mx-auto flex max-w-6xl flex-col items-center gap-6">
+          <nav className="flex flex-wrap justify-center gap-6 text-sm sm:gap-8">
             <Link href="/" className="text-white/85 hover:text-[#C8A96A] transition-colors">Home</Link>
             <Link href="#about" className="text-white/85 hover:text-[#C8A96A] transition-colors">About</Link>
             <Link href="#services" className="text-white/85 hover:text-[#C8A96A] transition-colors">Services</Link>
@@ -619,6 +619,14 @@ export default function HomePage() {
             <Link href="/privacy" className="text-white/85 hover:text-[#C8A96A] transition-colors">Privacy</Link>
             <Link href="/terms" className="text-white/85 hover:text-[#C8A96A] transition-colors">Terms</Link>
           </nav>
+          <div className="flex items-center justify-center gap-3">
+            <a href="https://www.instagram.com/withclearjourney" target="_blank" rel="noopener noreferrer" className="text-white/85 hover:text-[#C8A96A] transition-colors" aria-label="Instagram">
+              <Instagram className="h-5 w-5" strokeWidth={1.5} />
+            </a>
+            <a href="https://www.youtube.com/@withclearjourney" target="_blank" rel="noopener noreferrer" className="text-white/85 hover:text-[#C8A96A] transition-colors" aria-label="YouTube">
+              <Youtube className="h-5 w-5" strokeWidth={1.5} />
+            </a>
+          </div>
           <span className="text-sm text-white/70">© 2026 Clear Journey. All rights reserved.</span>
         </div>
       </footer>
