@@ -73,7 +73,7 @@ export function DashboardSidebar() {
 
       <div className="mt-auto border-t border-border-light/80 p-4">
         <Link
-          href="/login"
+          href="/signin"
           className="mb-3 flex items-center gap-2 text-sm text-charcoal-light hover:text-error-muted"
           aria-label="Sign out"
         >

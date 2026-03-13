@@ -97,7 +97,7 @@ export default function HomePage() {
             />
           </Link>
           <div className="flex items-center gap-6">
-            <Link href="/login" className="text-sm text-white/90 hover:text-white border-b border-transparent hover:border-[#C8A96A] transition-colors pb-0.5">Sign in</Link>
+            <Link href="/signin" className="text-sm text-white/90 hover:text-white border-b border-transparent hover:border-[#C8A96A] transition-colors pb-0.5">Sign in</Link>
             <Link href="/signup" className="rounded-full bg-[#faf8f5] px-4 py-2 text-sm font-medium text-[#1e293b] hover:bg-[#C8A96A] hover:text-[#1e293b] transition-colors">
               Unlock your 30-day trial
             </Link>
