@@ -152,6 +152,7 @@ function AddClientManualPageContent() {
   const [createdClientName, setCreatedClientName] = useState<string | null>(null);
   const [quickCreate, setQuickCreate] = useState<QuickCreateData>(emptyQuickCreate());
   const [profile, setProfile] = useState<ManualClientProfile | null>(null);
+  const [revealedPassportIds, setRevealedPassportIds] = useState<Record<string, boolean>>({});
   const [profileFormModalOpen, setProfileFormModalOpen] = useState(false);
   const [editClientId, setEditClientId] = useState<string | null>(null);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
@@ -255,6 +256,13 @@ function AddClientManualPageContent() {
     });
   };
 
+  const togglePassportReveal = (travellerId: string) => {
+    setRevealedPassportIds((prev) => ({
+      ...prev,
+      [travellerId]: !prev[travellerId],
+    }));
+  };
+
   const addAdditionalTraveller = (
     relationship: Exclude<ManualTraveller["relationship"], "self">
   ) => {
@@ -268,7 +276,12 @@ function AddClientManualPageContent() {
   const removeTraveller = (index: number) => {
     if (index === 0) return; // cannot remove main traveller
     setProfile((prev) =>
-      prev ? { ...prev, travellers: prev.travellers.filter((_, i) => i !== index) } : null
+      prev
+        ? {
+            ...prev,
+            travellers: prev.travellers.filter((_, i) => i !== index),
+          }
+        : null
     );
   };
 
@@ -573,31 +586,37 @@ function AddClientManualPageContent() {
             <span className="font-medium">{createdClientName} created successfully.</span>
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={goToCompleteProfile}
-              className="inline-flex items-center gap-2 rounded-button border border-border-light bg-white px-4 py-2.5 text-sm font-medium text-charcoal transition-colors hover:bg-sand-warm"
-            >
-              <UserCircle className="h-4 w-4" strokeWidth={1.5} />
-              Complete Profile Manually
-            </button>
-            <button
-              type="button"
-              onClick={() => setProfileFormModalOpen(true)}
-              className="inline-flex items-center gap-2 rounded-button border border-border-light bg-white px-4 py-2.5 text-sm font-medium text-charcoal transition-colors hover:bg-sand-warm"
-            >
-              <Send className="h-4 w-4" strokeWidth={1.5} />
-              Send Secure Client Profile Form
-            </button>
+          <div className="mt-4 flex flex-wrap gap-3 items-start">
+            <div className="flex flex-col">
+              <button
+                type="button"
+                onClick={goToCompleteProfile}
+                className="inline-flex items-center gap-2 rounded-button border border-border-light bg-white px-4 py-2.5 text-sm font-medium text-charcoal transition-colors hover:bg-sand-warm"
+              >
+                <UserCircle className="h-4 w-4" strokeWidth={1.5} />
+                Complete Profile Manually
+              </button>
+              <p className="mt-1 text-sm text-charcoal-light">Enter the client details yourself.</p>
+            </div>
+            <div className="flex flex-col">
+              <button
+                type="button"
+                onClick={() => setProfileFormModalOpen(true)}
+                className="inline-flex items-center gap-2 rounded-button border border-border-light bg-white px-4 py-2.5 text-sm font-medium text-charcoal transition-colors hover:bg-sand-warm"
+              >
+                <Send className="h-4 w-4" strokeWidth={1.5} />
+                Send Secure Client Profile Form
+              </button>
+              <p className="mt-1 text-sm text-charcoal-light">Let the client securely fill in their own details.</p>
+            </div>
           </div>
         </>
       )}
 
-      {/* Same modal as client page: Send Intake > Generate Client Profile Link */}
+      {/* Modal: Secure Client Profile Form */}
       {!isEditMode && profileFormModalOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8"
           role="dialog"
           aria-modal="true"
           aria-labelledby="send-intake-modal-title"
@@ -607,22 +626,31 @@ function AddClientManualPageContent() {
             onClick={() => setProfileFormModalOpen(false)}
             aria-hidden="true"
           />
-          <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-border-light bg-sand p-6 shadow-soft-xl">
-            <div className="absolute right-4 top-4">
+          <div className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-border-light bg-sand p-8 shadow-soft-xl">
+            <div className="absolute right-4 top-4 flex items-center justify-center">
               <button
                 type="button"
                 onClick={() => setProfileFormModalOpen(false)}
-                className="rounded-button p-2 text-charcoal-light hover:bg-sand-warm hover:text-charcoal"
+                className="rounded-full p-2 text-charcoal-light hover:bg-sand-warm hover:text-charcoal"
                 aria-label="Close"
               >
                 <X className="h-5 w-5" strokeWidth={1.5} />
               </button>
             </div>
-            <div id="send-intake-modal-title" className="sr-only">
-              Secure Client Forms
-            </div>
+            <header className="mb-4 pr-10">
+              <h2
+                id="send-intake-modal-title"
+                className="text-lg font-semibold tracking-tight text-charcoal"
+              >
+                Secure Client Profile Form
+              </h2>
+              <p className="mt-1 text-sm text-charcoal-light">
+                Share a private link for your client to complete their travel profile securely.
+              </p>
+            </header>
             <SecureClientFormsSection
               clientId={createdClientName.toLowerCase().replace(/\s+/g, "-")}
+              mode="profile-only"
             />
           </div>
         </div>
@@ -631,6 +659,9 @@ function AddClientManualPageContent() {
       <h1 className="mt-10 text-2xl font-semibold tracking-tight text-charcoal">
         {isEditMode ? `Edit ${createdClientName}'s Profile` : `Complete ${createdClientName}'s Profile`}
       </h1>
+      {!isEditMode && (
+        <p className="mt-1.5 text-sm text-charcoal-light">Choose how you&apos;d like to complete the client profile.</p>
+      )}
       <p className="mt-1.5 text-charcoal-light">
         {isEditMode
           ? "Update preferences, memberships, and documents."
@@ -882,17 +913,35 @@ function AddClientManualPageContent() {
                   </label>
                   {profile.travellers[0].passport.hasPassport && (
                     <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                      <div>
-                        <label className={labelClass}>Passport Number</label>
-                        <input
-                          type="text"
-                          value={profile.travellers[0].passport.passportNumber}
-                          onChange={(e) =>
-                            updateTravellerPassport(0, { passportNumber: e.target.value })
-                          }
-                          className={inputClass}
-                        />
-                      </div>
+                  <div>
+                    <div className="flex items-center justify-between gap-3">
+                      <label className={labelClass}>Passport Number</label>
+                      {profile.travellers[0].passport.passportNumber && (
+                        <button
+                          type="button"
+                          onClick={() => togglePassportReveal(profile.travellers[0].id)}
+                          className="text-xs font-medium text-charcoal-light hover:text-charcoal"
+                        >
+                          {revealedPassportIds[profile.travellers[0].id]
+                            ? "Hide passport details"
+                            : "Reveal passport details"}
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      type={
+                        profile.travellers[0].passport.passportNumber &&
+                        !revealedPassportIds[profile.travellers[0].id]
+                          ? "password"
+                          : "text"
+                      }
+                      value={profile.travellers[0].passport.passportNumber}
+                      onChange={(e) =>
+                        updateTravellerPassport(0, { passportNumber: e.target.value })
+                      }
+                      className={inputClass}
+                    />
+                  </div>
                       <div>
                         <label className={labelClass}>Issuing Country</label>
                         <input
@@ -955,13 +1004,10 @@ function AddClientManualPageContent() {
                         />
                       </div>
                       <div className="sm:col-span-2">
-                        <label className={labelClass}>Upload Passport Scan (optional)</label>
-                        <input
-                          type="file"
-                          accept="image/*,.pdf"
-                          className={inputClass}
-                          onChange={() => {}}
-                        />
+                        <p className="text-xs text-charcoal-light">
+                          Store essential passport details for booking purposes only. Passport
+                          scans are not stored in Clear Journey.
+                        </p>
                       </div>
                     </div>
                   )}
@@ -973,22 +1019,6 @@ function AddClientManualPageContent() {
             <div>
               <h3 className="mb-3 text-sm font-semibold text-charcoal">Additional Travellers</h3>
               <div className="mb-3 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => addAdditionalTraveller("spouse")}
-                  className="inline-flex items-center gap-2 rounded-button border border-dashed border-border-light bg-white px-3 py-2 text-sm font-medium text-charcoal hover:bg-sand-warm/50"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Spouse/Partner
-                </button>
-                <button
-                  type="button"
-                  onClick={() => addAdditionalTraveller("child")}
-                  className="inline-flex items-center gap-2 rounded-button border border-dashed border-border-light bg-white px-3 py-2 text-sm font-medium text-charcoal hover:bg-sand-warm/50"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Child
-                </button>
                 <button
                   type="button"
                   onClick={() => addAdditionalTraveller("other")}
@@ -1109,9 +1139,26 @@ function AddClientManualPageContent() {
                       {t.passport.hasPassport && (
                         <div className="mt-4 grid gap-4 sm:grid-cols-2">
                           <div>
-                            <label className={labelClass}>Passport Number</label>
+                            <div className="flex items-center justify-between gap-3">
+                              <label className={labelClass}>Passport Number</label>
+                              {t.passport.passportNumber && (
+                                <button
+                                  type="button"
+                                  onClick={() => togglePassportReveal(t.id)}
+                                  className="text-xs font-medium text-charcoal-light hover:text-charcoal"
+                                >
+                                  {revealedPassportIds[t.id]
+                                    ? "Hide passport details"
+                                    : "Reveal passport details"}
+                                </button>
+                              )}
+                            </div>
                             <input
-                              type="text"
+                              type={
+                                t.passport.passportNumber && !revealedPassportIds[t.id]
+                                  ? "password"
+                                  : "text"
+                              }
                               value={t.passport.passportNumber}
                               onChange={(e) =>
                                 updateTravellerPassport(i, { passportNumber: e.target.value })
@@ -1181,13 +1228,10 @@ function AddClientManualPageContent() {
                             />
                           </div>
                           <div className="sm:col-span-2">
-                            <label className={labelClass}>Upload Passport Scan (optional)</label>
-                            <input
-                              type="file"
-                              accept="image/*,.pdf"
-                              className={inputClass}
-                              onChange={() => {}}
-                            />
+                            <p className="text-xs text-charcoal-light">
+                              Store essential passport details for booking purposes only. Passport
+                              scans are not stored in Clear Journey.
+                            </p>
                           </div>
                         </div>
                       )}
@@ -1631,17 +1675,20 @@ function AddClientManualPageContent() {
           </div>
         </CollapsibleSection>
 
-        {/* 9. Payment Methods – Sensitive */}
+        {/* 9. Payment Method */}
         <CollapsibleSection
-          title="Sensitive Information"
-          subtext="Payment method references only. No full card number or CVV stored."
+          title="Payment Method"
+          subtext="Save a simple reference so you remember how the client prefers to pay."
           open={openSections.payment}
           onToggle={() => toggleSection("payment")}
         >
+          <p className="mb-4 text-xs text-charcoal-light">
+            Only store the last 4 digits. Keep full payment details outside Clear Journey.
+          </p>
           <div className="rounded-lg border border-amber-200/60 bg-amber-50/30 p-4">
             <div className="flex items-center gap-2 text-amber-800">
               <Lock className="h-4 w-4 flex-shrink-0" strokeWidth={1.5} />
-              <span className="text-sm font-medium">PCI-safe. Card stored securely with advisor.</span>
+              <span className="text-sm font-medium">Clear Journey stores reference details only.</span>
             </div>
           </div>
           <div className="mt-4 space-y-4">
@@ -1684,6 +1731,7 @@ function AddClientManualPageContent() {
                     <label className={labelClass}>Last 4 Digits</label>
                     <input
                       type="text"
+                      inputMode="numeric"
                       maxLength={4}
                       value={pm.last4}
                       onChange={(e) =>
@@ -1694,6 +1742,10 @@ function AddClientManualPageContent() {
                       className={inputClass}
                       placeholder="1234"
                     />
+                    <p className="mt-1 text-xs text-charcoal-light">Enter last 4 digits only.</p>
+                    {pm.last4.length > 0 && pm.last4.length !== 4 && (
+                      <p className="mt-1 text-xs text-amber-700">Please enter the last 4 digits only.</p>
+                    )}
                   </div>
                   <div>
                     <label className={labelClass}>Expiry Date</label>
@@ -1713,6 +1765,7 @@ function AddClientManualPageContent() {
                       onChange={(e) => updatePaymentMethod(i, { notes: e.target.value })}
                       className={inputClass}
                     />
+                    <p className="mt-1 text-xs text-charcoal-light">Optional internal note.</p>
                   </div>
                   <div className="sm:col-span-2">
                     <label className="flex cursor-pointer items-center gap-2 text-sm text-charcoal">
@@ -1726,7 +1779,7 @@ function AddClientManualPageContent() {
                         }
                         className="rounded border-border-light text-navy"
                       />
-                      Card stored securely with advisor
+                      Full card details stored outside Clear Journey
                     </label>
                   </div>
                 </div>

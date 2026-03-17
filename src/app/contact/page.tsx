@@ -121,7 +121,7 @@ export default function ContactPage() {
   const inputErrorClass = "border-error-muted/60 focus:ring-error-muted/20";
 
   return (
-    <div className="min-h-screen bg-sand-warm">
+    <div className="flex min-h-screen flex-col bg-sand-warm">
       <header className="border-b border-border-light bg-sand px-6 py-4">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <Link href="/" className="flex items-center">
@@ -143,12 +143,12 @@ export default function ContactPage() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-xl px-6 py-16">
+      <div className="mx-auto flex-1 w-full max-w-xl px-6 py-16">
         <h1 className="text-2xl font-semibold tracking-tight text-charcoal">
           Contact
         </h1>
         <p className="mt-2 text-charcoal-light">
-          If something isn&apos;t working as expected, or you have an idea that
+          If you need help, notice something not working, or have an idea that
           could improve Clear Journey, we&apos;d love to hear from you.
         </p>
 

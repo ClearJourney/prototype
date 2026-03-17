@@ -118,6 +118,16 @@ export interface TravelPreferencesStep {
   airPreferences: string;
   accommodationPreferences: string;
   cruisePreferences: string;
+  seatPreference: string;
+  roomPreference: string;
+  transferPreference: string;
+  specialRequests: string;
+  /** Dining / cuisine preferences (client form with chips) */
+  diningPreferences: string;
+  /** Combined travel preferences e.g. class, seat, transfers (client form with chips) */
+  travelPreferences: string;
+  /** Special interests e.g. wine, culture, wellness (client form with chips) */
+  specialInterests: string;
 }
 
 export interface HealthStep {
@@ -127,15 +137,36 @@ export interface HealthStep {
 }
 
 export interface SpecialDatesStep {
+  birthday: string;
   anniversary: string;
   otherMeaningfulDates: string;
 }
 
+export type LoyaltyProgramType = "airline" | "hotel" | "cruise" | "other";
+
+export interface LoyaltyProgramEntry {
+  programType: LoyaltyProgramType;
+  programName: string;
+  membershipNumber: string;
+  tier: string;
+}
+
+export interface AdditionalTravelerPassport {
+  hasPassport: boolean;
+  passportNumber: string;
+  issuingCountry: string;
+  expiryDate: string;
+}
+
 export interface AdditionalTraveler {
-  relationship: "spouse" | "partner" | "child";
-  name: string;
-  details: Partial<TravelerDetailsStep>;
-  passport: Partial<PassportStep>;
+  relationship: "spouse" | "partner" | "child" | "parent" | "friend" | "other";
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string;
+  gender: string;
+  passport: AdditionalTravelerPassport;
+  /** Optional full details for mapping to manual profile */
+  details?: Partial<TravelerDetailsStep>;
 }
 
 export interface FinalConsentStep {
@@ -151,6 +182,7 @@ export interface ClientProfileFormData {
   preferences: TravelPreferencesStep;
   health: HealthStep;
   specialDates: SpecialDatesStep;
+  loyaltyPrograms: LoyaltyProgramEntry[];
   additionalTravelers: AdditionalTraveler[];
   consent: FinalConsentStep;
 }

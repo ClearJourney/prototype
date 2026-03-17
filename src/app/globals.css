@@ -36,4 +36,9 @@ body {
   h3 {
     @apply font-medium text-charcoal;
   }
+
+  /* Dropdown arrow spacing: consistent right padding so caret has 16–20px from edge (36–40px total) */
+  select {
+    padding-right: 2.5rem !important; /* 40px – full-width select text never overlaps caret */
+  }
 }

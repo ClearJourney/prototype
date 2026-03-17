@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Link2, Copy, Mail, Calendar, ChevronDown, ChevronUp } from "lucide-react";
 
 const BASE_URL = typeof window !== "undefined" ? window.location.origin : "";
@@ -23,6 +23,10 @@ interface ClientProfileLinkBlockProps {
   onLinkGenerated?: (link: string) => void;
   /** Compact mode for pipeline slider (no section header, tighter spacing). */
   compact?: boolean;
+  /** When true, automatically generates a link on mount (used in modals). */
+  autoGenerateOnMount?: boolean;
+  /** When true, hides the primary generate button (used when auto-generating). */
+  hideGenerateButton?: boolean;
 }
 
 export function ClientProfileLinkBlock({
@@ -32,6 +36,8 @@ export function ClientProfileLinkBlock({
   initialLink,
   onLinkGenerated,
   compact = false,
+  autoGenerateOnMount = false,
+  hideGenerateButton = false,
 }: ClientProfileLinkBlockProps) {
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -104,79 +110,98 @@ export function ClientProfileLinkBlock({
     window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   }, [url, expiresAt]);
 
+  useEffect(() => {
+    if (autoGenerateOnMount && !url && !isRegistering) {
+      generateLink();
+    }
+  }, [autoGenerateOnMount, url, isRegistering, generateLink]);
+
   if (compact) {
     return (
       <div className="space-y-3">
         {!url ? (
-          <>
-            <button
-              type="button"
-              onClick={() => setShowOptions(!showOptions)}
-              className="flex items-center gap-2 text-xs text-charcoal-light hover:text-charcoal"
-            >
-              {showOptions ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              Options
-            </button>
-            {showOptions && (
-              <div className="flex flex-wrap items-center gap-4 rounded-lg border border-border-light bg-sand-warm/50 p-3 text-sm">
-                <label className="flex items-center gap-2 text-charcoal">
-                  <Calendar className="h-4 w-4 text-charcoal-light" />
-                  <span>Expiry (days)</span>
-                  <input
-                    type="number"
-                    min="1"
-                    max="365"
-                    value={expiryDays}
-                    onChange={(e) => setExpiryDays(e.target.value)}
-                    className="w-14 rounded border border-border-light bg-white px-2 py-1 text-sm"
-                  />
-                </label>
-                <label className="flex cursor-pointer items-center gap-2 text-sm text-charcoal">
-                  <input
-                    type="checkbox"
-                    checked={allowEditsAfterSubmit}
-                    onChange={(e) => setAllowEditsAfterSubmit(e.target.checked)}
-                    className="rounded border-border-light text-navy"
-                  />
-                  Allow edits after submission
-                </label>
+          hideGenerateButton ? null : (
+            <>
+              <button
+                type="button"
+                onClick={() => setShowOptions(!showOptions)}
+                className="flex items-center gap-2 text-xs text-charcoal-light hover:text-charcoal"
+              >
+                {showOptions ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                Options
+              </button>
+              {showOptions && (
+                <div className="flex flex-wrap items-center gap-4 rounded-lg border border-border-light bg-sand-warm/50 p-3 text-sm">
+                  <label className="flex items-center gap-2 text-charcoal">
+                    <Calendar className="h-4 w-4 text-charcoal-light" />
+                    <span>Expiry (days)</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="365"
+                      value={expiryDays}
+                      onChange={(e) => setExpiryDays(e.target.value)}
+                      className="w-14 rounded border border-border-light bg-white px-2 py-1 text-sm"
+                    />
+                  </label>
+                  <label className="flex cursor-pointer items-center gap-2 text-sm text-charcoal">
+                    <input
+                      type="checkbox"
+                      checked={allowEditsAfterSubmit}
+                      onChange={(e) => setAllowEditsAfterSubmit(e.target.checked)}
+                      className="rounded border-border-light text-navy"
+                    />
+                    Allow edits after submission
+                  </label>
+                </div>
+              )}
+              <div>
+                <button
+                  type="button"
+                  onClick={generateLink}
+                  disabled={isRegistering}
+                  className="inline-flex items-center gap-2 rounded-button bg-navy px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-navy-dark disabled:opacity-50"
+                >
+                  <Link2 className="h-4 w-4" strokeWidth={1.5} />
+                  {isRegistering ? "Generating…" : "Generate Client Profile Link"}
+                </button>
+                <p className="mt-1 text-xs text-charcoal-light">
+                  Collect traveler details for confirmed clients.
+                </p>
               </div>
-            )}
-            <button
-              type="button"
-              onClick={generateLink}
-              disabled={isRegistering}
-              className="inline-flex items-center gap-2 rounded-button bg-navy px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-navy-dark disabled:opacity-50"
-            >
-              <Link2 className="h-4 w-4" strokeWidth={1.5} />
-              {isRegistering ? "Generating…" : "Generate Client Profile Link"}
-            </button>
-          </>
+            </>
+          )
         ) : (
           <div className="rounded-lg border border-border-light bg-sand-warm/30 p-4">
             <p className="mb-2 text-xs font-medium uppercase tracking-wider text-charcoal-light">
               Private Travel Profile — Secure link
             </p>
-            <div className="flex flex-wrap items-center gap-2">
-              <code className="min-w-0 flex-1 truncate rounded border border-border-light bg-white px-3 py-2 text-sm text-charcoal">
-                {url}
-              </code>
-              <button
-                type="button"
-                onClick={copyToClipboard}
-                className="inline-flex items-center gap-2 rounded-button bg-navy px-3 py-2 text-sm font-medium text-white hover:bg-navy-dark"
-              >
-                <Copy className="h-4 w-4" strokeWidth={1.5} />
-                {copied ? "Copied" : "Copy link"}
-              </button>
-              <button
-                type="button"
-                onClick={sendViaEmail}
-                className="inline-flex items-center gap-2 rounded-button border border-border-light bg-white px-3 py-2 text-sm font-medium text-charcoal hover:bg-sand-warm"
-              >
-                <Mail className="h-4 w-4" strokeWidth={1.5} />
-                Send via email
-              </button>
+            <div className="space-y-3">
+              <input
+                type="text"
+                readOnly
+                value={url}
+                className="w-full rounded border border-border-light bg-white px-3 py-2 text-sm text-charcoal"
+                aria-label="Secure client profile URL"
+              />
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={copyToClipboard}
+                  className="inline-flex items-center gap-2 rounded-button bg-navy px-3 py-2 text-sm font-medium text-white hover:bg-navy-dark"
+                >
+                  <Copy className="h-4 w-4" strokeWidth={1.5} />
+                  {copied ? "Copied" : "Copy link"}
+                </button>
+                <button
+                  type="button"
+                  onClick={sendViaEmail}
+                  className="inline-flex items-center gap-2 rounded-button border border-border-light bg-white px-3 py-2 text-sm font-medium text-charcoal hover:bg-sand-warm"
+                >
+                  <Mail className="h-4 w-4" strokeWidth={1.5} />
+                  Send via email
+                </button>
+              </div>
             </div>
             {expiresAt && (
               <p className="mt-2 text-xs text-charcoal-light">
@@ -192,17 +217,28 @@ export function ClientProfileLinkBlock({
   return (
     <section className="rounded-xl border border-border-light bg-white p-6">
       <div className="flex flex-wrap gap-3">
-        <button
-          type="button"
-          onClick={generateLink}
-          disabled={isRegistering}
-          className="inline-flex items-center gap-2 rounded-button border border-navy/20 bg-white px-4 py-2.5 text-sm font-medium text-navy transition-colors hover:bg-navy/5 disabled:opacity-50"
-        >
-          <Link2 className="h-4 w-4" strokeWidth={1.5} />
-          {isRegistering ? "Generating…" : "Generate Client Profile Link"}
-        </button>
+        {hideGenerateButton ? (
+          <p className="text-xs text-charcoal-light">
+            Collect traveler details for confirmed clients.
+          </p>
+        ) : (
+          <div>
+            <button
+              type="button"
+              onClick={generateLink}
+              disabled={isRegistering}
+              className="inline-flex items-center gap-2 rounded-button bg-navy px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-navy-dark disabled:opacity-50"
+            >
+              <Link2 className="h-4 w-4" strokeWidth={1.5} />
+              {isRegistering ? "Generating…" : "Generate Client Profile Link"}
+            </button>
+            <p className="mt-1 text-xs text-charcoal-light">
+              Collect traveler details for confirmed clients.
+            </p>
+          </div>
+        )}
       </div>
-      <div className="mt-4">
+      <div className="mt-5">
         <button
           type="button"
           onClick={() => setShowOptions(!showOptions)}
@@ -238,18 +274,18 @@ export function ClientProfileLinkBlock({
         )}
       </div>
       {url && (
-        <div className="mt-6 rounded-lg border border-border-light bg-sand-warm/30 p-4">
-          <p className="mb-2 text-xs font-medium uppercase tracking-wider text-charcoal-light">
+        <div className="mt-6 rounded-lg border border-border-light bg-sand-warm/20 p-5">
+          <p className="mb-3 text-xs font-medium uppercase tracking-wider text-charcoal-light">
             Private Travel Profile — Secure link
           </p>
-          <div className="flex flex-wrap items-center gap-2">
-            <code className="min-w-0 flex-1 truncate rounded border border-border-light bg-white px-3 py-2 text-sm text-charcoal">
+          <div className="flex flex-wrap items-center gap-3">
+            <code className="min-w-0 flex-1 truncate rounded border border-border-light bg-white px-3 py-2.5 text-sm text-charcoal">
               {url}
             </code>
             <button
               type="button"
               onClick={copyToClipboard}
-              className="inline-flex items-center gap-2 rounded-button bg-navy px-3 py-2 text-sm font-medium text-white hover:bg-navy-dark"
+              className="inline-flex items-center gap-2 rounded-button bg-navy px-3.5 py-2.5 text-sm font-medium text-white hover:bg-navy-dark"
             >
               <Copy className="h-4 w-4" strokeWidth={1.5} />
               {copied ? "Copied" : "Copy link"}
@@ -257,7 +293,7 @@ export function ClientProfileLinkBlock({
             <button
               type="button"
               onClick={sendViaEmail}
-              className="inline-flex items-center gap-2 rounded-button border border-border-light bg-white px-3 py-2 text-sm font-medium text-charcoal hover:bg-sand-warm"
+              className="inline-flex items-center gap-2 rounded-button border border-border-light bg-white px-3.5 py-2.5 text-sm font-medium text-charcoal hover:bg-sand-warm"
             >
               <Mail className="h-4 w-4" strokeWidth={1.5} />
               Send via email

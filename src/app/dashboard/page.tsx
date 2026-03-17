@@ -34,62 +34,30 @@ const COMING_UP: TaskItem[] = [
 ];
 
 function TaskRow({
-  id,
   client,
   task,
   due,
   action,
-  urgent,
   opportunityId,
-  onComplete,
 }: {
-  id: string;
   client: string;
   task: string;
   due: string;
   action: string;
-  urgent?: boolean;
   opportunityId: string;
-  onComplete?: (taskId: string) => void;
 }) {
   const rowHref = `/dashboard/pipeline?opportunity=${encodeURIComponent(opportunityId)}`;
-
-  const handleActionClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    // Action pill keeps its own behaviour (e.g. future: open email/call flow)
-  };
-
-  const handleDotClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    onComplete?.(id);
-  };
 
   return (
     <Link
       href={rowHref}
-      className="flex items-start justify-between gap-4 py-4 first:pt-0 last:pb-0 border-b border-border-light/60 last:border-0 transition-colors hover:bg-sand-warm/40 cursor-pointer"
+      className="flex items-start py-4 first:pt-0 last:pb-0 border-b border-border-light/60 last:border-0 transition-colors hover:bg-sand-warm/40 cursor-pointer"
     >
       <div className="min-w-0 flex-1">
         <p className="font-medium text-charcoal">{client}</p>
         <p className="mt-0.5 text-sm text-charcoal-light">{task}</p>
         <p className="mt-0.5 text-xs text-charcoal-light">{due}</p>
-      </div>
-      <div className="flex flex-shrink-0 items-center gap-2">
-        <button
-          type="button"
-          onClick={handleActionClick}
-          className="rounded-button border border-border-light bg-white px-3 py-1.5 text-xs font-medium text-charcoal transition-colors hover:bg-sand-warm cursor-pointer"
-        >
-          {action}
-        </button>
-        <button
-          type="button"
-          onClick={handleDotClick}
-          aria-label="Mark complete"
-          className={`h-2 w-2 flex-shrink-0 rounded-full cursor-pointer transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-navy/20 focus:ring-offset-1 ${urgent ? "bg-error-muted/80" : "bg-charcoal-light/40 hover:bg-charcoal-light/60"}`}
-        />
+        <p className="mt-0.5 text-xs text-charcoal-light">Step: {action}</p>
       </div>
     </Link>
   );
@@ -97,7 +65,6 @@ function TaskRow({
 
 export default function DashboardPage() {
   const [needsAttentionCount, setNeedsAttentionCount] = useState<number>(0);
-  const [completedTaskIds, setCompletedTaskIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetch("/api/opportunities")
@@ -110,15 +77,7 @@ export default function DashboardPage() {
       .catch(() => {});
   }, []);
 
-  const completeTask = (taskId: string) => {
-    setCompletedTaskIds((prev) => new Set(prev).add(taskId));
-  };
-
-  const todayFiltered = TODAY_ITEMS.filter((item) => !completedTaskIds.has(item.id));
-  const needsAttentionFiltered = NEEDS_ATTENTION.filter((item) => !completedTaskIds.has(item.id));
-  const comingUpFiltered = COMING_UP.filter((item) => !completedTaskIds.has(item.id));
-
-  const totalNeedsAttention = needsAttentionFiltered.length + needsAttentionCount;
+  const totalNeedsAttention = NEEDS_ATTENTION.length + needsAttentionCount;
 
   return (
     <>
@@ -146,18 +105,16 @@ export default function DashboardPage() {
             <h2 className="text-lg font-semibold text-charcoal">
               What&apos;s next today
             </h2>
-            <p className="mt-0.5 text-xs text-charcoal-light">{todayFiltered.length} items</p>
+            <p className="mt-0.5 text-xs text-charcoal-light">{TODAY_ITEMS.length} items</p>
             <div className="mt-5">
-              {todayFiltered.map((item) => (
+              {TODAY_ITEMS.map((item) => (
                 <TaskRow
                   key={item.id}
-                  id={item.id}
                   client={item.client}
                   task={item.task}
                   due={item.due}
                   action={item.action}
                   opportunityId={item.opportunityId}
-                  onComplete={completeTask}
                 />
               ))}
             </div>
@@ -182,17 +139,14 @@ export default function DashboardPage() {
                   </Link>
                 </div>
               )}
-              {needsAttentionFiltered.map((item) => (
+              {NEEDS_ATTENTION.map((item) => (
                 <TaskRow
                   key={item.id}
-                  id={item.id}
                   client={item.client}
                   task={item.task}
                   due={item.due}
                   action={item.action}
-                  urgent={item.urgent}
                   opportunityId={item.opportunityId}
-                  onComplete={completeTask}
                 />
               ))}
             </div>
@@ -202,18 +156,16 @@ export default function DashboardPage() {
             <h2 className="text-lg font-semibold text-charcoal">
               Coming up this week
             </h2>
-            <p className="mt-0.5 text-xs text-charcoal-light">{comingUpFiltered.length} items</p>
+            <p className="mt-0.5 text-xs text-charcoal-light">{COMING_UP.length} items</p>
             <div className="mt-5">
-              {comingUpFiltered.map((item) => (
+              {COMING_UP.map((item) => (
                 <TaskRow
                   key={item.id}
-                  id={item.id}
                   client={item.client}
                   task={item.task}
                   due={item.due}
                   action={item.action}
                   opportunityId={item.opportunityId}
-                  onComplete={completeTask}
                 />
               ))}
             </div>

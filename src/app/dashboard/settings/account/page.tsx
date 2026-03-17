@@ -6,29 +6,14 @@ import { SettingsCard } from "@/components/settings/SettingsCard";
 import { X } from "lucide-react";
 
 // Stub: replace with API when ready
-async function exportData(): Promise<void> {
-  await new Promise((r) => setTimeout(r, 800));
-}
-
 async function deleteAccount(): Promise<void> {
   await new Promise((r) => setTimeout(r, 500));
 }
 
 export default function AccountSettingsPage() {
-  const [exporting, setExporting] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleting, setDeleting] = useState(false);
-
-  const handleExport = async () => {
-    setExporting(true);
-    try {
-      await exportData();
-      // In real app: trigger download or show success
-    } finally {
-      setExporting(false);
-    }
-  };
 
   const handleDeleteAccount = async () => {
     if (deleteConfirm !== "DELETE") return;
@@ -51,26 +36,11 @@ export default function AccountSettingsPage() {
     <>
       <SettingsPanel
         title="Account"
-        description="Export your data or permanently delete your account. Destructive actions cannot be undone."
+        description="Manage your account settings. You can permanently delete your account if needed."
       >
         <SettingsCard
-          title="Export all data"
-          description="Download your data as a CSV file."
-          danger={false}
-        >
-          <button
-            type="button"
-            onClick={handleExport}
-            disabled={exporting}
-            className="rounded-button border border-border-light bg-white px-4 py-2.5 text-sm font-medium text-charcoal transition-colors hover:bg-sand-warm disabled:opacity-60"
-          >
-            {exporting ? "Preparing…" : "Export All Data (CSV)"}
-          </button>
-        </SettingsCard>
-
-        <SettingsCard
           title="Delete account"
-          description="Permanently delete your account and all associated data. This action is irreversible."
+          description="If you no longer wish to use Clear Journey, you can permanently delete your account and all associated data."
           danger
         >
           <button

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { SecureFormLayout } from "@/components/forms/SecureFormLayout";
 import { FormSection } from "@/components/forms/FormSection";
@@ -11,11 +11,12 @@ import {
   type TravelPreferencesStep,
   type HealthStep,
   type SpecialDatesStep,
+  type LoyaltyProgramEntry,
   type AdditionalTraveler,
   type FinalConsentStep,
   type ClientProfileFormData,
 } from "@/types/secure-forms";
-import { Plus, Trash2 } from "lucide-react";
+import { Info, Lock, Plus, Trash2 } from "lucide-react";
 
 const STEPS: { key: string; label: string }[] = [
   { key: "traveler", label: "Traveler Details" },
@@ -24,13 +25,52 @@ const STEPS: { key: string; label: string }[] = [
   { key: "prefs", label: "Preferences" },
   { key: "health", label: "Health" },
   { key: "dates", label: "Special Dates" },
+  { key: "loyalty", label: "Loyalty Programs" },
   { key: "additional", label: "Additional Travelers" },
   { key: "confirmation", label: "Confirmation" },
 ];
 
 const inputClass =
   "w-full rounded-lg border border-[#e8e4de] bg-white px-4 py-2.5 text-[#2c2a26] placeholder:text-[#9a9794] focus:border-[#1e293b] focus:outline-none focus:ring-1 focus:ring-[#1e293b]";
+/** Selects use same styling as inputs with extra right padding so the dropdown arrow aligns with date picker icon spacing */
+const selectClass =
+  "w-full rounded-lg border border-[#e8e4de] bg-white pl-4 pr-10 py-2.5 text-[#2c2a26] focus:border-[#1e293b] focus:outline-none focus:ring-1 focus:ring-[#1e293b]";
 const labelClass = "block text-sm font-medium text-[#2c2a26] mb-1.5";
+
+/** Single-line input that expands when user types multiple lines or presses Enter */
+function ExpandablePreferenceInput({
+  value,
+  onChange,
+  onFocus,
+  onBlur,
+  className,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onFocus: () => void;
+  onBlur: () => void;
+  className: string;
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.max(el.scrollHeight, 42)}px`;
+  }, [value]);
+  return (
+    <textarea
+      ref={ref}
+      rows={1}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      onFocus={onFocus}
+      onBlur={onBlur}
+      className={className}
+      style={{ overflow: "hidden", resize: "none", minHeight: 42 }}
+    />
+  );
+}
 
 const emptyTraveler: TravelerDetailsStep = {
   legalFirstName: "",
@@ -69,6 +109,13 @@ const emptyPrefs: TravelPreferencesStep = {
   airPreferences: "",
   accommodationPreferences: "",
   cruisePreferences: "",
+  seatPreference: "",
+  roomPreference: "",
+  transferPreference: "",
+  specialRequests: "",
+  diningPreferences: "",
+  travelPreferences: "",
+  specialInterests: "",
 };
 
 const emptyHealth: HealthStep = {
@@ -78,8 +125,16 @@ const emptyHealth: HealthStep = {
 };
 
 const emptySpecialDates: SpecialDatesStep = {
+  birthday: "",
   anniversary: "",
   otherMeaningfulDates: "",
+};
+
+const emptyLoyaltyProgram: LoyaltyProgramEntry = {
+  programType: "airline",
+  programName: "",
+  membershipNumber: "",
+  tier: "",
 };
 
 const emptyConsent: FinalConsentStep = {
@@ -93,6 +148,7 @@ export default function ClientProfileFormPage() {
   const token = params?.token as string;
   const [step, setStep] = useState(0);
   const [submitted, setSubmitted] = useState(false);
+  const [preferenceChipsVisible, setPreferenceChipsVisible] = useState<string | null>(null);
   const [data, setData] = useState<ClientProfileFormData>({
     traveler: { ...emptyTraveler },
     passport: { ...emptyPassport },
@@ -100,6 +156,7 @@ export default function ClientProfileFormPage() {
     preferences: { ...emptyPrefs },
     health: { ...emptyHealth },
     specialDates: { ...emptySpecialDates },
+    loyaltyPrograms: [],
     additionalTravelers: [],
     consent: { ...emptyConsent },
   });
@@ -131,8 +188,34 @@ export default function ClientProfileFormPage() {
       specialDates: { ...prev.specialDates, ...patch },
     }));
   };
+  const addLoyaltyProgram = () => {
+    setData((prev) => ({
+      ...prev,
+      loyaltyPrograms: [...prev.loyaltyPrograms, { ...emptyLoyaltyProgram }],
+    }));
+  };
+  const updateLoyaltyProgram = (index: number, patch: Partial<LoyaltyProgramEntry>) => {
+    setData((prev) => {
+      const next = [...prev.loyaltyPrograms];
+      next[index] = { ...next[index], ...patch };
+      return { ...prev, loyaltyPrograms: next };
+    });
+  };
+  const removeLoyaltyProgram = (index: number) => {
+    setData((prev) => ({
+      ...prev,
+      loyaltyPrograms: prev.loyaltyPrograms.filter((_, i) => i !== index),
+    }));
+  };
   const updateConsent = (patch: Partial<FinalConsentStep>) => {
     setData((prev) => ({ ...prev, consent: { ...prev.consent, ...patch } }));
+  };
+
+  const emptyAdditionalTravelerPassport = {
+    hasPassport: false,
+    passportNumber: "",
+    issuingCountry: "",
+    expiryDate: "",
   };
 
   const addAdditionalTraveler = () => {
@@ -140,7 +223,14 @@ export default function ClientProfileFormPage() {
       ...prev,
       additionalTravelers: [
         ...prev.additionalTravelers,
-        { relationship: "spouse", name: "", details: {}, passport: {} },
+        {
+          relationship: "spouse",
+          firstName: "",
+          lastName: "",
+          dateOfBirth: "",
+          gender: "",
+          passport: { ...emptyAdditionalTravelerPassport },
+        },
       ],
     }));
   };
@@ -183,10 +273,14 @@ export default function ClientProfileFormPage() {
 
   const goBack = () => setStep((s) => Math.max(0, s - 1));
 
+  // Placeholder until company name is wired from API/branding
+  const companyName = "[Company Name]";
+
   if (submitted) {
     return (
       <SecureFormLayout
-        headline="Private Travel Profile"
+        eyebrow={`Requested by ${companyName}`}
+        headline="Your Private Travel Profile"
         subtext="Your details have been received securely."
       >
         <div className="rounded-xl border border-[#e8e4de] bg-white p-8 text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
@@ -203,8 +297,10 @@ export default function ClientProfileFormPage() {
 
   return (
     <SecureFormLayout
-      headline="Private Travel Profile"
-      subtext="Share your details securely so we can design your journey."
+      eyebrow={`Requested by ${companyName}`}
+      headline="Your Private Travel Profile"
+      subtext="A few details will help us tailor your journey perfectly."
+      trustLines={["Secure · Private · Encrypted", "Takes about 2–3 minutes"]}
     >
       {/* Progress indicator */}
       <div className="mb-8">
@@ -231,9 +327,13 @@ export default function ClientProfileFormPage() {
         {step === 0 && (
           <div className="space-y-6">
             <FormSection title="Traveler details">
+              <p className="mb-3 flex items-center gap-2 text-xs text-[#5c5a57]">
+                <Info className="h-3.5 w-3.5 flex-shrink-0" strokeWidth={1.5} />
+                Please enter your name exactly as it appears on your passport.
+              </p>
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="sm:col-span-2">
-                  <label className={labelClass}>Legal first name</label>
+                  <label className={labelClass}>First name (as on passport)</label>
                   <input
                     type="text"
                     required
@@ -253,7 +353,7 @@ export default function ClientProfileFormPage() {
                 </div>
               </div>
               <div>
-                <label className={labelClass}>Legal last name</label>
+                <label className={labelClass}>Last name (as on passport)</label>
                 <input
                   type="text"
                   required
@@ -347,7 +447,7 @@ export default function ClientProfileFormPage() {
                   <select
                     value={data.traveler.gender}
                     onChange={(e) => updateTraveler({ gender: e.target.value })}
-                    className={inputClass}
+                    className={selectClass}
                   >
                     <option value="">Select…</option>
                     <option value="Female">Female</option>
@@ -363,85 +463,79 @@ export default function ClientProfileFormPage() {
 
         {/* Step 1 – Passport */}
         {step === 1 && (
-          <FormSection title="Passport & travel documents">
-            <label className="flex cursor-pointer items-center gap-2 text-sm text-[#2c2a26]">
-              <input
-                type="checkbox"
-                checked={data.passport.hasPassport}
-                onChange={(e) => updatePassport({ hasPassport: e.target.checked })}
-                className="rounded border-[#e8e4de] text-[#1e293b]"
-              />
-              I have a valid passport to add
-            </label>
-            {data.passport.hasPassport && (
-              <div className="mt-4 space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className={labelClass}>Passport number</label>
-                    <input
-                      type="text"
-                      value={data.passport.passportNumber}
-                      onChange={(e) => updatePassport({ passportNumber: e.target.value })}
-                      className={inputClass}
-                    />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Issuing country</label>
-                    <input
-                      type="text"
-                      value={data.passport.issuingCountry}
-                      onChange={(e) => updatePassport({ issuingCountry: e.target.value })}
-                      className={inputClass}
-                    />
-                  </div>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className={labelClass}>Issue date</label>
-                    <input
-                      type="date"
-                      value={data.passport.issueDate}
-                      onChange={(e) => updatePassport({ issueDate: e.target.value })}
-                      className={inputClass}
-                    />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Expiry date</label>
-                    <input
-                      type="date"
-                      value={data.passport.expiryDate}
-                      onChange={(e) => updatePassport({ expiryDate: e.target.value })}
-                      className={inputClass}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className={labelClass}>Passport type</label>
-                  <select
-                    value={data.passport.passportType}
-                    onChange={(e) => updatePassport({ passportType: e.target.value })}
-                    className={inputClass}
-                  >
-                    <option value="">Select…</option>
-                    <option value="Regular">Regular</option>
-                    <option value="Official">Official</option>
-                    <option value="Diplomatic">Diplomatic</option>
-                  </select>
-                </div>
-                <div>
-                  <label className={labelClass}>
-                    Known Traveler Number <span className="text-[#8a8784]">(optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={data.passport.knownTravelerNumber}
-                    onChange={(e) => updatePassport({ knownTravelerNumber: e.target.value })}
-                    placeholder="e.g. TSA PreCheck"
-                    className={inputClass}
-                  />
-                </div>
+          <FormSection
+            title="Passport details"
+            description="Adding your passport details now helps your advisor prepare bookings and avoid delays."
+          >
+            <p className="flex items-center gap-2 text-xs text-[#5c5a57]">
+              <Lock className="h-3.5 w-3.5 flex-shrink-0" strokeWidth={1.5} />
+              Stored securely and only used for travel planning.
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className={labelClass}>Passport number</label>
+                <input
+                  type="text"
+                  value={data.passport.passportNumber}
+                  onChange={(e) => updatePassport({ passportNumber: e.target.value })}
+                  className={inputClass}
+                />
               </div>
-            )}
+              <div>
+                <label className={labelClass}>Issuing country</label>
+                <input
+                  type="text"
+                  value={data.passport.issuingCountry}
+                  onChange={(e) => updatePassport({ issuingCountry: e.target.value })}
+                  className={inputClass}
+                />
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className={labelClass}>Issue date</label>
+                <input
+                  type="date"
+                  value={data.passport.issueDate}
+                  onChange={(e) => updatePassport({ issueDate: e.target.value })}
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Expiry date</label>
+                <input
+                  type="date"
+                  value={data.passport.expiryDate}
+                  onChange={(e) => updatePassport({ expiryDate: e.target.value })}
+                  className={inputClass}
+                />
+              </div>
+            </div>
+            <div>
+              <label className={labelClass}>Passport type</label>
+              <select
+                value={data.passport.passportType}
+                onChange={(e) => updatePassport({ passportType: e.target.value })}
+                className={selectClass}
+              >
+                <option value="">Select…</option>
+                <option value="Regular">Regular</option>
+                <option value="Official">Official</option>
+                <option value="Diplomatic">Diplomatic</option>
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>
+                Trusted traveler number (optional)
+              </label>
+              <input
+                type="text"
+                value={data.passport.knownTravelerNumber}
+                onChange={(e) => updatePassport({ knownTravelerNumber: e.target.value })}
+                placeholder="e.g. TSA PreCheck"
+                className={inputClass}
+              />
+            </div>
           </FormSection>
         )}
 
@@ -496,42 +590,95 @@ export default function ClientProfileFormPage() {
             title="Travel preferences"
             description="All optional — share what helps us personalize your journey."
           >
-            <div>
-              <label className={labelClass}>General travel style</label>
-              <textarea
-                value={data.preferences.generalStyle}
-                onChange={(e) => updatePrefs({ generalStyle: e.target.value })}
-                rows={2}
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Air travel preferences</label>
-              <textarea
-                value={data.preferences.airPreferences}
-                onChange={(e) => updatePrefs({ airPreferences: e.target.value })}
-                rows={2}
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Accommodation preferences</label>
-              <textarea
-                value={data.preferences.accommodationPreferences}
-                onChange={(e) => updatePrefs({ accommodationPreferences: e.target.value })}
-                rows={2}
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Cruise preferences (if applicable)</label>
-              <textarea
-                value={data.preferences.cruisePreferences}
-                onChange={(e) => updatePrefs({ cruisePreferences: e.target.value })}
-                rows={2}
-                className={inputClass}
-              />
-            </div>
+            {[
+              {
+                key: "accommodation",
+                label: "Accommodation preferences",
+                helper: "Share anything that helps us choose the right places for you.",
+                value: data.preferences.accommodationPreferences,
+                onChange: (v: string) => updatePrefs({ accommodationPreferences: v }),
+                chips: [
+                  "Boutique hotels",
+                  "Luxury resorts",
+                  "Ocean views",
+                  "Quiet rooms",
+                  "Suites preferred",
+                ],
+              },
+              {
+                key: "dining",
+                label: "Dining preferences",
+                helper: "Tell us about dietary preferences or cuisines you enjoy.",
+                value: data.preferences.diningPreferences,
+                onChange: (v: string) => updatePrefs({ diningPreferences: v }),
+                chips: [
+                  "Fine dining",
+                  "Wine experiences",
+                  "Local cuisine",
+                  "Vegetarian",
+                  "Seafood",
+                ],
+              },
+              {
+                key: "travel",
+                label: "Travel preferences",
+                helper: "Let us know how you prefer to travel.",
+                value: data.preferences.travelPreferences,
+                onChange: (v: string) => updatePrefs({ travelPreferences: v }),
+                chips: [
+                  "Business class",
+                  "First class",
+                  "Aisle seat",
+                  "Private transfers",
+                  "Small luxury cruises",
+                ],
+              },
+              {
+                key: "special",
+                label: "Special interests",
+                helper: "What do you enjoy experiencing while travelling?",
+                value: data.preferences.specialInterests,
+                onChange: (v: string) => updatePrefs({ specialInterests: v }),
+                chips: [
+                  "Wine tasting",
+                  "Cultural tours",
+                  "Wellness / spa",
+                  "Adventure",
+                  "Food experiences",
+                ],
+              },
+            ].map(({ key: fieldKey, label, helper, value, onChange, chips }) => (
+              <div key={fieldKey} className="mt-6 first:mt-0 space-y-2">
+                <label className={labelClass}>{label}</label>
+                <p className="text-xs text-[#5c5a57]">{helper}</p>
+                {preferenceChipsVisible === fieldKey && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {chips.map((chip) => (
+                      <button
+                        key={chip}
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() =>
+                          onChange(
+                            value ? `${value}, ${chip}` : chip
+                          )
+                        }
+                        className="rounded-full border border-[#e8e4de] bg-white px-3 py-1.5 text-xs text-[#2c2a26] hover:border-[#1e293b]/30 hover:bg-sand-warm/30"
+                      >
+                        {chip}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <ExpandablePreferenceInput
+                  value={value}
+                  onChange={onChange}
+                  onFocus={() => setPreferenceChipsVisible(fieldKey)}
+                  onBlur={() => setPreferenceChipsVisible(null)}
+                  className={inputClass}
+                />
+              </div>
+            ))}
           </FormSection>
         )}
 
@@ -572,6 +719,16 @@ export default function ClientProfileFormPage() {
         {step === 5 && (
           <FormSection title="Special dates">
             <div>
+              <label className={labelClass}>Birthday</label>
+              <input
+                type="text"
+                value={data.specialDates.birthday}
+                onChange={(e) => updateSpecialDates({ birthday: e.target.value })}
+                placeholder="e.g. March 22"
+                className={inputClass}
+              />
+            </div>
+            <div>
               <label className={labelClass}>Anniversary</label>
               <input
                 type="text"
@@ -594,31 +751,108 @@ export default function ClientProfileFormPage() {
           </FormSection>
         )}
 
-        {/* Step 6 – Additional Travelers */}
+        {/* Step 6 – Loyalty Programs */}
         {step === 6 && (
           <FormSection
+            title="Loyalty programs"
+            description="Optional — add any loyalty programs you'd like us to keep in mind."
+          >
+            {data.loyaltyPrograms.map((lp, i) => (
+              <div
+                key={i}
+                className="rounded-lg border border-[#e8e4de] bg-sand-warm/30 p-4"
+              >
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <span className="text-sm font-medium text-[#2c2a26]">
+                    Loyalty program {i + 1}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => removeLoyaltyProgram(i)}
+                    className="rounded p-2 text-charcoal-light hover:bg-white hover:text-error-muted"
+                    aria-label="Remove"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className={labelClass}>Program type</label>
+                    <select
+                      value={lp.programType}
+                      onChange={(e) =>
+                        updateLoyaltyProgram(i, {
+                          programType: e.target.value as LoyaltyProgramEntry["programType"],
+                        })
+                      }
+                      className={selectClass}
+                    >
+                      <option value="airline">Airline</option>
+                      <option value="hotel">Hotel</option>
+                      <option value="cruise">Cruise</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className={labelClass}>Program name</label>
+                    <input
+                      type="text"
+                      value={lp.programName}
+                      onChange={(e) => updateLoyaltyProgram(i, { programName: e.target.value })}
+                      placeholder="e.g. SkyMiles, Marriott Bonvoy"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Membership number</label>
+                    <input
+                      type="text"
+                      value={lp.membershipNumber}
+                      onChange={(e) =>
+                        updateLoyaltyProgram(i, { membershipNumber: e.target.value })
+                      }
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Tier</label>
+                    <input
+                      type="text"
+                      value={lp.tier}
+                      onChange={(e) => updateLoyaltyProgram(i, { tier: e.target.value })}
+                      placeholder="e.g. Gold, Platinum"
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={addLoyaltyProgram}
+              className="mt-3 inline-flex items-center gap-2 rounded-lg border border-dashed border-[#e8e4de] bg-white px-4 py-2.5 text-sm font-medium text-[#2c2a26] hover:bg-sand-warm/50"
+            >
+              <Plus className="h-4 w-4" />
+              Add loyalty program
+            </button>
+          </FormSection>
+        )}
+
+        {/* Step 7 – Additional Travelers */}
+        {step === 7 && (
+          <FormSection
             title="Additional travelers"
-            description="Spouse, partner, or children traveling with you."
+            description="Add anyone traveling with you. Passport details can be added now or later."
           >
             {data.additionalTravelers.map((t, i) => (
               <div
                 key={i}
                 className="rounded-lg border border-[#e8e4de] bg-sand-warm/30 p-4"
               >
-                <div className="flex items-center justify-between gap-2">
-                  <select
-                    value={t.relationship}
-                    onChange={(e) =>
-                      updateAdditionalTraveler(i, {
-                        relationship: e.target.value as AdditionalTraveler["relationship"],
-                      })
-                    }
-                    className="w-40 rounded-lg border border-[#e8e4de] bg-white px-3 py-2 text-sm"
-                  >
-                    <option value="spouse">Spouse / Partner</option>
-                    <option value="partner">Partner</option>
-                    <option value="child">Child</option>
-                  </select>
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <span className="text-sm font-medium text-[#2c2a26]">
+                    Traveler {i + 1}
+                  </span>
                   <button
                     type="button"
                     onClick={() => removeAdditionalTraveler(i)}
@@ -628,18 +862,154 @@ export default function ClientProfileFormPage() {
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
-                <div className="mt-3">
-                  <label className={labelClass}>Name</label>
-                  <input
-                    type="text"
-                    value={t.name}
-                    onChange={(e) => updateAdditionalTraveler(i, { name: e.target.value })}
-                    className={inputClass}
-                  />
+                <div className="space-y-4">
+                  <div>
+                    <label className={labelClass}>Relationship</label>
+                    <select
+                      value={t.relationship}
+                      onChange={(e) =>
+                        updateAdditionalTraveler(i, {
+                          relationship: e.target.value as AdditionalTraveler["relationship"],
+                        })
+                      }
+                      className={selectClass}
+                    >
+                      <option value="spouse">Spouse</option>
+                      <option value="partner">Partner</option>
+                      <option value="child">Child</option>
+                      <option value="parent">Parent</option>
+                      <option value="friend">Friend</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className={labelClass}>First name</label>
+                      <input
+                        type="text"
+                        value={t.firstName}
+                        onChange={(e) =>
+                          updateAdditionalTraveler(i, { firstName: e.target.value })
+                        }
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Last name</label>
+                      <input
+                        type="text"
+                        value={t.lastName}
+                        onChange={(e) =>
+                          updateAdditionalTraveler(i, { lastName: e.target.value })
+                        }
+                        className={inputClass}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className={labelClass}>
+                        Date of birth <span className="text-[#8a8784]">(optional)</span>
+                      </label>
+                      <input
+                        type="date"
+                        value={t.dateOfBirth}
+                        onChange={(e) =>
+                          updateAdditionalTraveler(i, { dateOfBirth: e.target.value })
+                        }
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>
+                        Gender <span className="text-[#8a8784]">(optional)</span>
+                      </label>
+                      <select
+                        value={t.gender}
+                        onChange={(e) =>
+                          updateAdditionalTraveler(i, { gender: e.target.value })
+                        }
+                        className={selectClass}
+                      >
+                        <option value="">Select…</option>
+                        <option value="Female">Female</option>
+                        <option value="Male">Male</option>
+                        <option value="Non-binary">Non-binary</option>
+                        <option value="Prefer not to say">Prefer not to say</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="flex cursor-pointer items-center gap-2 text-sm text-[#2c2a26]">
+                      <input
+                        type="checkbox"
+                        checked={t.passport.hasPassport}
+                        onChange={(e) =>
+                          updateAdditionalTraveler(i, {
+                            passport: {
+                              ...t.passport,
+                              hasPassport: e.target.checked,
+                            },
+                          })
+                        }
+                        className="rounded border-[#e8e4de] text-[#1e293b]"
+                      />
+                      I have passport details to add
+                    </label>
+                    {t.passport.hasPassport && (
+                      <div className="mt-4 space-y-4">
+                        <div>
+                          <label className={labelClass}>Passport number</label>
+                          <input
+                            type="text"
+                            value={t.passport.passportNumber}
+                            onChange={(e) =>
+                              updateAdditionalTraveler(i, {
+                                passport: {
+                                  ...t.passport,
+                                  passportNumber: e.target.value,
+                                },
+                              })
+                            }
+                            className={inputClass}
+                          />
+                        </div>
+                        <div>
+                          <label className={labelClass}>Issuing country</label>
+                          <input
+                            type="text"
+                            value={t.passport.issuingCountry}
+                            onChange={(e) =>
+                              updateAdditionalTraveler(i, {
+                                passport: {
+                                  ...t.passport,
+                                  issuingCountry: e.target.value,
+                                },
+                              })
+                            }
+                            className={inputClass}
+                          />
+                        </div>
+                        <div>
+                          <label className={labelClass}>Expiry date</label>
+                          <input
+                            type="date"
+                            value={t.passport.expiryDate}
+                            onChange={(e) =>
+                              updateAdditionalTraveler(i, {
+                                passport: {
+                                  ...t.passport,
+                                  expiryDate: e.target.value,
+                                },
+                              })
+                            }
+                            className={inputClass}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <p className="mt-2 text-xs text-[#8a8784]">
-                  Simplified traveler details and passport can be added in a full profile.
-                </p>
               </div>
             ))}
             <button
@@ -653,11 +1023,14 @@ export default function ClientProfileFormPage() {
           </FormSection>
         )}
 
-        {/* Step 7 – Final Notes & Consent */}
-        {step === 7 && (
+        {/* Step 8 – Final Notes & Consent */}
+        {step === 8 && (
           <FormSection title="Final notes & consent">
-            <div>
-              <label className={labelClass}>Final notes</label>
+            <div className="space-y-2">
+              <label className={labelClass}>Anything else we should know?</label>
+              <p className="mt-1 text-xs text-[#5c5a57]">
+                Share anything that might help your advisor plan your journey.
+              </p>
               <textarea
                 value={data.consent.finalNotes}
                 onChange={(e) => updateConsent({ finalNotes: e.target.value })}
@@ -699,7 +1072,7 @@ export default function ClientProfileFormPage() {
             type="submit"
             className="rounded-lg bg-[#1e293b] px-6 py-2.5 text-sm font-medium text-white hover:bg-[#0f172a]"
           >
-            {step === STEPS.length - 1 ? "Submit" : "Continue"}
+            {step === STEPS.length - 1 ? "Send profile" : "Continue"}
           </button>
         </div>
       </form>

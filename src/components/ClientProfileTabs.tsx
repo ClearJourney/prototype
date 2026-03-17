@@ -68,10 +68,10 @@ interface ClientProfileTabsProps {
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "preferences", label: "Preferences" },
-  { id: "travel-documents", label: "Travel Documents" },
+  { id: "travel-documents", label: "Travel Details" },
   { id: "emergency-contact", label: "Emergency Contact" },
   { id: "health", label: "Health & Assistance" },
-  { id: "important-dates", label: "Important Dates" },
+  { id: "important-dates", label: "Special Dates" },
 ];
 
 export function ClientProfileTabs({

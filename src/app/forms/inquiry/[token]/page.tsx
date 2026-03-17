@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { SecureFormLayout } from "@/components/forms/SecureFormLayout";
 import { FormSection } from "@/components/forms/FormSection";
@@ -29,7 +29,7 @@ const SERVICES_OPTIONS = [
   "Transfers",
   "Experiences",
   "Dining",
-  "Full itinerary management",
+  "Full trip planning",
 ];
 
 const REFERRAL_SOURCES = [
@@ -42,6 +42,8 @@ const REFERRAL_SOURCES = [
 
 const inputClass =
   "w-full rounded-lg border border-[#e8e4de] bg-white px-4 py-2.5 text-[#2c2a26] placeholder:text-[#9a9794] focus:border-[#1e293b] focus:outline-none focus:ring-1 focus:ring-[#1e293b]";
+const selectClass =
+  "w-full rounded-lg border border-[#e8e4de] bg-white px-4 py-2.5 pr-10 text-[#2c2a26] focus:border-[#1e293b] focus:outline-none focus:ring-1 focus:ring-[#1e293b]";
 const labelClass = "block text-sm font-medium text-[#2c2a26] mb-1.5";
 
 export default function InquiryFormPage() {
@@ -49,6 +51,18 @@ export default function InquiryFormPage() {
   const token = params?.token as string;
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [companyName, setCompanyName] = useState<string>("Company Name");
+
+  useEffect(() => {
+    if (!token || !isAccountSlug(token)) return;
+    fetch(`/api/forms/branding?slug=${encodeURIComponent(token)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.businessName) setCompanyName(data.businessName);
+      })
+      .catch(() => {});
+  }, [token]);
+
   const [form, setForm] = useState<InquiryFormData>({
     planningStage: "",
     destination: "",
@@ -107,8 +121,9 @@ export default function InquiryFormPage() {
   if (submitted) {
     return (
       <SecureFormLayout
+        eyebrow={`From ${companyName}`}
         headline="Begin Your Travel Design"
-        subtext="Share a few details so we can thoughtfully prepare for your journey."
+        subtext="Share a few details so your advisor can begin planning your journey."
       >
         <div className="rounded-xl border border-[#e8e4de] bg-white p-8 text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
           <p className="text-lg font-medium text-[#2c2a26]">
@@ -124,8 +139,9 @@ export default function InquiryFormPage() {
 
   return (
     <SecureFormLayout
+      eyebrow={`From ${companyName}`}
       headline="Begin Your Travel Design"
-      subtext="Share a few details so we can thoughtfully prepare for your journey."
+      subtext="Share a few details so your advisor can begin planning your journey."
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         {submitError && (
@@ -133,16 +149,16 @@ export default function InquiryFormPage() {
             {submitError}
           </div>
         )}
-        {/* Section 1 – Planning Readiness */}
+        {/* Section 1 – Planning stage */}
         <FormSection
-          title="Planning readiness"
+          title="Planning stage"
           description="Where are you in the planning process?"
         >
           <select
             required
             value={form.planningStage}
             onChange={(e) => update({ planningStage: e.target.value })}
-            className={inputClass}
+            className={selectClass}
           >
             <option value="">Select…</option>
             {PLANNING_STAGES.map((s) => (
@@ -167,7 +183,7 @@ export default function InquiryFormPage() {
             />
           </div>
           <div>
-            <label className={labelClass}>Number of travelers?</label>
+            <label className={labelClass}>Number of travelers</label>
             <input
               type="number"
               min={1}
@@ -181,13 +197,13 @@ export default function InquiryFormPage() {
           </div>
           <div>
             <label className={labelClass}>
-              Desired travel dates <span className="text-[#8a8784]">(optional)</span>
+              Desired travel dates (optional)
             </label>
             <input
               type="text"
               value={form.desiredDates}
               onChange={(e) => update({ desiredDates: e.target.value })}
-              placeholder="e.g. Summer 2025, or specific dates"
+              placeholder="Summer 2026, December holidays, or specific dates"
               className={inputClass}
             />
           </div>
@@ -196,15 +212,15 @@ export default function InquiryFormPage() {
         {/* Section 3 – Investment & Scope */}
         <FormSection
           title="Investment & scope"
-          description="Estimated investment range per traveler (advisors can customize these ranges)"
+          description="Estimated investment per traveler"
         >
           <div>
-            <label className={labelClass}>Estimated investment range per traveler</label>
+            <label className={labelClass}>Estimated investment per traveler</label>
             <select
               required
               value={form.investmentRange}
               onChange={(e) => update({ investmentRange: e.target.value })}
-              className={inputClass}
+              className={selectClass}
             >
               <option value="">Select…</option>
               {DEFAULT_BUDGET_RANGES.map((r) => (
@@ -220,7 +236,7 @@ export default function InquiryFormPage() {
               required
               value={form.journeyType}
               onChange={(e) => update({ journeyType: e.target.value })}
-              className={inputClass}
+              className={selectClass}
             >
               <option value="">Select…</option>
               {JOURNEY_TYPES.map((t) => (
@@ -251,13 +267,13 @@ export default function InquiryFormPage() {
           </div>
         </FormSection>
 
-        {/* Section 4 – Travel Style & Intent */}
+        {/* Section 4 – Travel style */}
         <FormSection
-          title="Travel style & intent"
-          description="What matters most about how this journey feels?"
+          title="Travel style"
+          description="What matters most about how this journey should feel?"
         >
           <div>
-            <label className={labelClass}>What matters most about how this journey feels?</label>
+            <label className={labelClass}>What matters most about how this journey should feel?</label>
             <textarea
               value={form.whatMattersMost}
               onChange={(e) => update({ whatMattersMost: e.target.value })}
@@ -322,7 +338,7 @@ export default function InquiryFormPage() {
             />
           </div>
           <div>
-            <label className={labelClass}>Country / State of residence</label>
+            <label className={labelClass}>Country / Region of residence</label>
             <input
               type="text"
               value={form.countryState}
@@ -333,12 +349,12 @@ export default function InquiryFormPage() {
           </div>
           <div>
             <label className={labelClass}>
-              Referral source <span className="text-[#8a8784]">(optional)</span>
+              How did you hear about us? (optional)
             </label>
             <select
               value={form.referralSource}
               onChange={(e) => update({ referralSource: e.target.value })}
-              className={inputClass}
+              className={selectClass}
             >
               <option value="">Select…</option>
               {REFERRAL_SOURCES.map((r) => (
@@ -364,7 +380,7 @@ export default function InquiryFormPage() {
             type="submit"
             className="rounded-lg bg-[#1e293b] px-6 py-3 font-medium text-white transition-colors hover:bg-[#0f172a]"
           >
-            Request Travel Design
+            Submit Travel Request
           </button>
         </div>
       </form>

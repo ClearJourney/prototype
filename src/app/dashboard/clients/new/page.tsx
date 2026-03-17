@@ -13,6 +13,7 @@ import {
   Lightbulb,
 } from "lucide-react";
 import { ImportClientsModal } from "@/components/ImportClientsModal";
+import { WhiteGloveImportModal } from "@/components/WhiteGloveImportModal";
 
 const CSV_TEMPLATE = `name,email,phone
 Jane Smith,jane@example.com,+1 555 000 0001
@@ -20,6 +21,7 @@ John Doe,john@example.com,+1 555 000 0002`;
 
 export default function NewClientOnboardingPage() {
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const [whiteGloveModalOpen, setWhiteGloveModalOpen] = useState(false);
 
   const handleDownloadTemplate = useCallback(() => {
     const blob = new Blob([CSV_TEMPLATE], { type: "text/csv" });
@@ -46,7 +48,7 @@ export default function NewClientOnboardingPage() {
           Let&apos;s bring your clients into Clear Journey
         </h1>
         <p className="mt-1.5 text-charcoal-light">
-          Choose the fastest way to get started — you&apos;ll be set up in minutes.
+          Choose how you&apos;d like to get started.
         </p>
       </div>
 
@@ -59,7 +61,7 @@ export default function NewClientOnboardingPage() {
           </span>
           <h2 className="mt-3 font-semibold text-charcoal">Add Clients One by One</h2>
           <p className="mt-1 text-sm text-charcoal-light">
-            For testing or starting small. Perfect if you want to get a feel for the profile structure.
+            Start by adding clients manually.
           </p>
           <div className="mt-4 flex-1">
             <Link
@@ -82,7 +84,7 @@ export default function NewClientOnboardingPage() {
           </span>
           <h2 className="mt-3 font-semibold text-charcoal">Import Your Clients in Minutes</h2>
           <p className="mt-1 text-sm text-charcoal-light">
-            Upload your full client list using our simple template. Get everyone onboarded instantly.
+            Upload your client list using our template.
           </p>
           <div className="mt-4 flex flex-1 flex-col gap-2">
             <button
@@ -101,7 +103,7 @@ export default function NewClientOnboardingPage() {
               <FileDown className="h-4 w-4" strokeWidth={1.5} />
               Download Template
             </button>
-            <p className="mt-0.5 text-xs text-charcoal-light">No formatting headaches. We&apos;ll guide you.</p>
+            <p className="mt-0.5 text-xs text-charcoal-light">We&apos;ll guide you through it.</p>
           </div>
         </div>
 
@@ -112,16 +114,17 @@ export default function NewClientOnboardingPage() {
           </span>
           <h2 className="mt-3 font-semibold text-charcoal">Prefer We Handle It?</h2>
           <p className="mt-1 text-sm text-charcoal-light">
-            Send us your client list and we&apos;ll set everything up for you. A true concierge experience.
+            Send us your client list and we&apos;ll set everything up.
           </p>
           <div className="mt-4 flex-1">
-            <Link
-              href="/dashboard/clients/new/white-glove"
+            <button
+              type="button"
+              onClick={() => setWhiteGloveModalOpen(true)}
               className="inline-flex w-full justify-center rounded-button border border-border-light bg-white px-4 py-2.5 text-sm font-medium text-charcoal transition-colors hover:bg-sand-warm"
             >
               Request White-Glove Setup
-            </Link>
-            <p className="mt-2 text-xs text-charcoal-light">Because your time is better spent serving clients.</p>
+            </button>
+            <p className="mt-2 text-xs text-charcoal-light">Ideal if you&apos;d rather not deal with the import.</p>
           </div>
         </div>
       </div>
@@ -130,7 +133,7 @@ export default function NewClientOnboardingPage() {
       <div className="mt-16 text-center">
         <h2 className="text-xl font-semibold text-charcoal">What happens next</h2>
         <p className="mt-1 text-sm text-charcoal-light">
-          Once your clients are in, Clear Journey works behind the scenes to keep you connected.
+          Once your clients are in, Clear Journey keeps everything organised.
         </p>
       </div>
       <div className="mt-8 grid gap-6 sm:grid-cols-3">
@@ -140,7 +143,7 @@ export default function NewClientOnboardingPage() {
           </span>
           <h3 className="mt-3 font-semibold text-charcoal">Organized Profiles</h3>
           <p className="mt-1 text-sm text-charcoal-light">
-            Every client gets a comprehensive profile with contact details, preferences, and history at your fingertips.
+            Each client gets a clean profile with everything in one place.
           </p>
         </div>
         <div className="flex flex-col items-center rounded-card border border-border-light/80 bg-white p-5 shadow-soft text-center">
@@ -149,7 +152,7 @@ export default function NewClientOnboardingPage() {
           </span>
           <h3 className="mt-3 font-semibold text-charcoal">Timely Reminders</h3>
           <p className="mt-1 text-sm text-charcoal-light">
-            Never miss an important date. Get gentle nudges for birthdays, anniversaries, and follow-ups.
+            Never miss birthdays, anniversaries, or follow-ups.
           </p>
         </div>
         <div className="flex flex-col items-center rounded-card border border-border-light/80 bg-white p-5 shadow-soft text-center">
@@ -158,12 +161,13 @@ export default function NewClientOnboardingPage() {
           </span>
           <h3 className="mt-3 font-semibold text-charcoal">Smart Suggestions</h3>
           <p className="mt-1 text-sm text-charcoal-light">
-            Receive intelligent recommendations on the best times to reach out and deepen relationships.
+            Helpful prompts for when to reconnect with clients.
           </p>
         </div>
       </div>
 
       <ImportClientsModal isOpen={importModalOpen} onClose={() => setImportModalOpen(false)} />
+      <WhiteGloveImportModal isOpen={whiteGloveModalOpen} onClose={() => setWhiteGloveModalOpen(false)} />
     </div>
   );
 }

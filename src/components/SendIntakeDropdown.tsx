@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Link2, UserCircle, List, X } from "lucide-react";
+import { Send, List, X, FileText } from "lucide-react";
 import { SecureClientFormsSection } from "@/components/SecureClientFormsSection";
 
 const buttonSecondaryClass =
   "inline-flex items-center gap-2 rounded-button border border-border-light bg-white px-4 py-2 text-sm font-medium text-charcoal transition-colors hover:bg-sand-warm";
 
-type DropdownAction = "generate-inquiry" | "generate-profile" | "view-links" | null;
+type DropdownAction = "generate-forms" | "view-links" | null;
 
 export function SendIntakeDropdown({ clientId }: { clientId: string }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -50,20 +50,11 @@ export function SendIntakeDropdown({ clientId }: { clientId: string }) {
           <button
             type="button"
             role="menuitem"
-            onClick={() => openModal("generate-inquiry")}
+            onClick={() => openModal("generate-forms")}
             className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-charcoal hover:bg-sand-warm"
           >
-            <Link2 className="h-4 w-4 text-charcoal-light" strokeWidth={1.5} />
-            Generate Inquiry Link
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => openModal("generate-profile")}
-            className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-charcoal hover:bg-sand-warm"
-          >
-            <UserCircle className="h-4 w-4 text-charcoal-light" strokeWidth={1.5} />
-            Generate Client Profile Link
+            <FileText className="h-4 w-4 text-charcoal-light" strokeWidth={1.5} />
+            Generate Forms
           </button>
           <button
             type="button"
@@ -77,8 +68,8 @@ export function SendIntakeDropdown({ clientId }: { clientId: string }) {
         </div>
       )}
 
-      {/* Modal: Generate links (reuses full SecureClientFormsSection) */}
-      {(modalOpen === "generate-inquiry" || modalOpen === "generate-profile") && (
+      {/* Modal: Generate forms (Share Client Forms) */}
+      {modalOpen === "generate-forms" && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           role="dialog"
@@ -90,19 +81,19 @@ export function SendIntakeDropdown({ clientId }: { clientId: string }) {
             onClick={() => setModalOpen(null)}
             aria-hidden="true"
           />
-          <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-border-light bg-sand p-6 shadow-soft-xl">
-            <div className="absolute right-4 top-4">
+          <div className="relative max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-xl border border-border-light bg-sand p-6 shadow-soft-xl">
+            <div className="absolute right-6 top-6">
               <button
                 type="button"
                 onClick={() => setModalOpen(null)}
-                className="rounded-button p-2 text-charcoal-light hover:bg-sand-warm hover:text-charcoal"
+                className="flex h-9 w-9 items-center justify-center rounded-button text-charcoal-light hover:bg-sand-warm hover:text-charcoal"
                 aria-label="Close"
               >
                 <X className="h-5 w-5" strokeWidth={1.5} />
               </button>
             </div>
             <div id="send-intake-modal-title" className="sr-only">
-              Secure Client Forms
+              Share Client Forms
             </div>
             <SecureClientFormsSection clientId={clientId} />
           </div>

@@ -184,7 +184,7 @@ export function ImportClientsModal({ isOpen, onClose }: Props) {
           <div>
             <h2 className="text-lg font-semibold text-charcoal">Import Your Clients</h2>
             <p className="mt-0.5 text-sm text-charcoal-light">
-              Bring your existing client list into Clear Journey.
+              Upload your existing client list.
             </p>
           </div>
           <button
@@ -203,7 +203,7 @@ export function ImportClientsModal({ isOpen, onClose }: Props) {
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-success-muted/15 text-success-muted">
               <Check className="h-3.5 w-3.5" strokeWidth={2} />
             </span>
-            <span className="text-sm font-medium text-charcoal">Download Template</span>
+            <span className="text-sm font-medium text-charcoal">Step 1 · Download Template</span>
             <button
               type="button"
               onClick={handleDownloadTemplate}
@@ -220,7 +220,7 @@ export function ImportClientsModal({ isOpen, onClose }: Props) {
             >
               {step >= 2 ? <Check className="h-3.5 w-3.5" strokeWidth={2} /> : "2"}
             </span>
-            <span className="text-sm font-medium text-charcoal">Upload Your Completed File</span>
+            <span className="text-sm font-medium text-charcoal">Step 2 · Upload Your File</span>
             {file && (
               <button
                 type="button"
@@ -239,7 +239,7 @@ export function ImportClientsModal({ isOpen, onClose }: Props) {
             >
               3
             </span>
-            <span className="text-sm font-medium text-charcoal">Confirm Import</span>
+            <span className="text-sm font-medium text-charcoal">Step 3 · Confirm Import</span>
           </div>
         </div>
 
@@ -317,16 +317,7 @@ export function ImportClientsModal({ isOpen, onClose }: Props) {
           </div>
         )}
 
-        {/* White-glove */}
-        <div className="mt-6 flex items-start gap-3 rounded-button border border-border-light/80 bg-sand-warm/30 p-3">
-          <Info className="h-5 w-5 flex-shrink-0 text-charcoal-light" strokeWidth={1.5} />
-          <p className="text-sm text-charcoal-light">
-            Prefer a white-glove service? Our Concierge Team can handle the formatting and import for you.{" "}
-            <Link href="/dashboard/clients/new/white-glove" onClick={resetAndClose} className="font-medium text-navy hover:underline">
-              Request White-Glove Setup
-            </Link>
-          </p>
-        </div>
+        {/* White-glove section removed per updated copy requirements */}
 
         {/* Footer */}
         <div className="mt-6 flex items-center justify-between gap-3 border-t border-border-light pt-4">
