@@ -75,13 +75,8 @@ export interface PaymentMethodEntry {
   storedSecurelyWithAdvisor: boolean;
 }
 
-/** Extended travel preferences (manual form) */
-export interface ManualTravelPreferences extends TravelPreferencesStep {
-  seatPreference?: string;
-  roomPreference?: string;
-  transferPreference?: string;
-  specialRequests?: string;
-}
+/** Extended travel preferences (manual form) – same shape as TravelPreferencesStep. */
+export type ManualTravelPreferences = TravelPreferencesStep;
 
 /** Consent & system fields (schema parity with private form) */
 export interface ConsentAndSystemFields {

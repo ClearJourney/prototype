@@ -123,6 +123,9 @@ function emptyProfile(createdName: { first: string; last: string; middle: string
       roomPreference: "",
       transferPreference: "",
       specialRequests: "",
+      diningPreferences: "",
+      travelPreferences: "",
+      specialInterests: "",
     },
     health: { mobilityAssistance: false, dietaryRestrictions: false, medicalNotes: "" },
     specialDates: {

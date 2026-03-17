@@ -104,6 +104,9 @@ export function mapClientToManualProfile(client: MockClient): ManualClientProfil
       roomPreference: "",
       transferPreference: "",
       specialRequests: prefsByLabel["dining"] ?? "",
+      diningPreferences: prefsByLabel["dining"] ?? "",
+      travelPreferences: prefsByLabel["travel"] ?? "",
+      specialInterests: prefsByLabel["special interests"] ?? "",
     },
     health: {
       mobilityAssistance: client.health.mobilityAssistance,
