@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { Bell, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { SendIntakeDropdown } from "@/components/SendIntakeDropdown";
 import { ClientProfileTabs } from "@/components/ClientProfileTabs";
 import { ClientRemindersPanel } from "@/components/ClientRemindersPanel";
+import { ConciergeAssistantTrigger } from "@/components/ConciergeAssistantTrigger";
 import { getClientData } from "@/lib/mock-clients";
 
 export default function ClientProfilePage({
@@ -24,16 +25,7 @@ export default function ClientProfilePage({
           <span className="mx-2">/</span>
           <span className="font-medium text-charcoal">{client.name}</span>
         </nav>
-        <Link
-          href="/dashboard/concierge"
-          className="inline-flex items-center gap-2 rounded-button border border-border-light bg-white px-4 py-2 text-sm font-medium text-charcoal transition-colors hover:bg-sand-warm"
-        >
-          <Bell className="h-5 w-5 flex-shrink-0" strokeWidth={1.5} />
-          Ask Concierge
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-error-muted/90 text-xs font-medium text-white">
-            3
-          </span>
-        </Link>
+        <ConciergeAssistantTrigger clientName={client.name} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_280px]">

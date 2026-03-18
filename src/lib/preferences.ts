@@ -73,12 +73,13 @@ export function hasSavedPreferences(): boolean {
   return localStorage.getItem(STORAGE_KEY) !== null;
 }
 
-/** Load preferences from storage. Returns defaults if none saved. */
+/** Load preferences from storage. Returns defaults if none saved; uses browser-detected timezone (and suggested regional prefs) when no storage. */
 export function getPreferences(): Preferences {
   if (typeof window === "undefined") return DEFAULT_PREFERENCES;
   const stored = localStorage.getItem(STORAGE_KEY);
   const parsed = parseStored(stored);
-  return parsed ?? DEFAULT_PREFERENCES;
+  if (parsed) return parsed;
+  return { ...DEFAULT_PREFERENCES, ...getSuggestedRegionalPreferences() };
 }
 
 /** Load only regional preferences (for components that don't need email/country). */

@@ -6,7 +6,6 @@ import { SettingsCard } from "@/components/settings/SettingsCard";
 import { Toast } from "@/components/settings/Toast";
 import {
   CURRENCIES,
-  TIMEZONES,
   DATE_FORMATS,
   getPreferences,
   savePreferences as persistPreferences,
@@ -50,12 +49,12 @@ export default function PreferencesSettingsPage() {
     <>
       <SettingsPanel
         title="Preferences"
-        description="System defaults for currency, timezone, and date display."
+        description="System defaults for currency and date display."
       >
         <form onSubmit={handleSubmit}>
           <SettingsCard
             title="Regional & format"
-            description="Currency, timezone, and date display."
+            description="Currency and date display."
           >
             <div className="grid gap-5 sm:grid-cols-2">
               <div>
@@ -73,25 +72,6 @@ export default function PreferencesSettingsPage() {
                   {CURRENCIES.map((c) => (
                     <option key={c} value={c}>
                       {c}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-charcoal">
-                  Timezone
-                </label>
-                <p className="mb-1.5 text-xs text-charcoal-light">
-                  Used for reminders and scheduling.
-                </p>
-                <select
-                  value={form.timezone}
-                  onChange={handleChange("timezone")}
-                  className={inputClass}
-                >
-                  {TIMEZONES.map((t) => (
-                    <option key={t} value={t}>
-                      {t.replace(/_/g, " ")}
                     </option>
                   ))}
                 </select>

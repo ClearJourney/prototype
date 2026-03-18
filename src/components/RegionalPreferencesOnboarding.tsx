@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import {
   CURRENCIES,
-  TIMEZONES,
   DATE_FORMATS,
   getSuggestedRegionalPreferences,
   getPreferences,
@@ -21,22 +20,21 @@ type Props = {
 export function RegionalPreferencesOnboarding({ onComplete }: Props) {
   const [currency, setCurrency] = useState("USD");
   const [dateFormat, setDateFormat] = useState("MM/DD/YYYY");
-  const [timezone, setTimezone] = useState("America/New_York");
 
   useEffect(() => {
     const suggested = getSuggestedRegionalPreferences();
     setCurrency(suggested.currency);
     setDateFormat(suggested.dateFormat);
-    setTimezone(suggested.timezone);
   }, []);
 
   const handleSave = () => {
     const existing = getPreferences();
+    const suggested = getSuggestedRegionalPreferences();
     const prefs: Preferences = {
       ...existing,
       currency,
       dateFormat,
-      timezone,
+      timezone: suggested.timezone,
       defaultReminderTime: existing.defaultReminderTime,
     };
     savePreferences(prefs);
@@ -51,8 +49,8 @@ export function RegionalPreferencesOnboarding({ onComplete }: Props) {
       >
         <h2 className="text-lg font-semibold text-charcoal">Regional Preferences</h2>
         <p className="mt-1 text-sm text-charcoal-light">
-          Set your preferred currency, date format, and timezone. You can change these anytime in
-          Settings → Preferences.
+          Set your preferred currency and date format. You can change these anytime in Settings →
+          Preferences.
         </p>
 
         <div className="mt-6 space-y-5">
@@ -91,26 +89,6 @@ export function RegionalPreferencesOnboarding({ onComplete }: Props) {
               {DATE_FORMATS.map((d) => (
                 <option key={d.value} value={d.value}>
                   {d.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-charcoal">
-              Timezone
-            </label>
-            <p className="mb-1.5 text-xs text-charcoal-light">
-              Used for reminders and scheduling.
-            </p>
-            <select
-              value={timezone}
-              onChange={(e) => setTimezone(e.target.value)}
-              className={inputClass}
-            >
-              {TIMEZONES.map((t) => (
-                <option key={t} value={t}>
-                  {t.replace(/_/g, " ")}
                 </option>
               ))}
             </select>
