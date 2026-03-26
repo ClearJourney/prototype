@@ -4,7 +4,7 @@
  * In production, replace with a database.
  */
 
-import type { InquiryFormData } from "@/types/secure-forms";
+import type { InquiryFormData, TravelerDetailsStep } from "@/types/secure-forms";
 
 export type ClientProfileStatus = "not_requested" | "sent" | "completed";
 
@@ -33,6 +33,8 @@ export type StoredOpportunity = {
   clientProfileFormLink?: string | null;
   clientProfileRequestedAt?: string | null;
   clientProfileCompletedAt?: string | null;
+  /** Latest traveler step from submitted Client Profile intake (honorific, legal name, etc.) */
+  profileSubmittedTraveler?: TravelerDetailsStep;
 };
 
 const opportunities: StoredOpportunity[] = [];
@@ -205,10 +207,21 @@ export function markClientProfileCompleted(opportunityId: string): void {
   }
 }
 
-export function markClientProfileCompletedByToken(token: string): boolean {
-  const opportunityId = getOpportunityIdByProfileToken(token);
+export function markClientProfileCompletedByToken(
+  token: string,
+  traveler?: TravelerDetailsStep
+): boolean {
+  loadFromFile();
+  const opportunityId = profileTokenToOpportunityId.get(token);
   if (!opportunityId) return false;
-  markClientProfileCompleted(opportunityId);
+  const o = opportunities.find((op) => op.id === opportunityId);
+  if (!o) return false;
+  if (traveler) {
+    o.profileSubmittedTraveler = traveler;
+  }
+  o.clientProfileStatus = "completed";
+  o.clientProfileCompletedAt = new Date().toISOString();
+  saveToFile();
   return true;
 }
 

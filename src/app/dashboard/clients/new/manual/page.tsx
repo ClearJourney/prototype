@@ -17,6 +17,7 @@ import { CollapsibleSection } from "@/components/CollapsibleSection";
 import { SecureClientFormsSection } from "@/components/SecureClientFormsSection";
 import { getClientData } from "@/lib/mock-clients";
 import { mapClientToManualProfile } from "@/lib/map-client-to-manual-profile";
+import { formatMockClientDisplayName } from "@/lib/client-display-name";
 import type {
   QuickCreateData,
   ManualTraveller,
@@ -26,6 +27,11 @@ import type {
   PaymentMethodEntry,
 } from "@/types/client-manual";
 import type { TravelerDetailsStep, EmergencyContactStep, HealthStep } from "@/types/client-manual";
+import {
+  TRAVELER_TITLE_OPTIONS,
+  TRAVELER_GENDER_OPTIONS,
+  isTravelerGenderSelected,
+} from "@/types/secure-forms";
 import type { ManualTravelPreferences } from "@/types/client-manual";
 
 const SUGGESTED_TAGS = ["VIP", "Returning Client", "Honeymoon", "Family", "Corporate", "Group"];
@@ -41,7 +47,6 @@ const ADDITIONAL_RELATIONSHIP_OPTIONS: {
   { value: "friend", label: "Friend" },
   { value: "other", label: "Other" },
 ];
-const GENDER_OPTIONS = ["", "Female", "Male", "Non-binary", "Prefer not to say"];
 const PASSPORT_TYPES = ["", "Regular", "Official", "Diplomatic"];
 const LOYALTY_PROGRAM_TYPES: { value: LoyaltyProgramEntry["programType"]; label: string }[] = [
   { value: "airline", label: "Airline" },
@@ -52,11 +57,15 @@ const LOYALTY_PROGRAM_TYPES: { value: LoyaltyProgramEntry["programType"]; label:
 ];
 
 const inputClass =
-  "w-full rounded-button border border-border-light bg-white px-3 py-2.5 text-charcoal placeholder:text-charcoal-light focus:outline-none focus:ring-2 focus:ring-navy/15";
+  "box-border min-h-[42px] w-full rounded-button border border-border-light bg-white px-3 py-2.5 text-charcoal placeholder:text-charcoal-light focus:outline-none focus:ring-2 focus:ring-navy/15";
+const selectClass =
+  "box-border min-h-[42px] w-full appearance-none rounded-button border border-border-light bg-white py-2.5 pl-3 pr-10 text-charcoal focus:outline-none focus:ring-2 focus:ring-navy/15";
 const labelClass = "mb-1.5 block text-sm font-medium text-charcoal";
 
 function emptyQuickCreate(): QuickCreateData {
   return {
+    title: "",
+    titleOther: "",
     legalFirstName: "",
     legalLastName: "",
     middleName: "",
@@ -68,9 +77,13 @@ function emptyQuickCreate(): QuickCreateData {
 
 function emptyCoreIdentity(clientName: { first: string; last: string; middle: string }): TravelerDetailsStep & { tags: string[] } {
   return {
+    title: "",
+    titleOther: "",
     legalFirstName: clientName.first,
     legalLastName: clientName.last,
     middleName: clientName.middle,
+    preferredName: "",
+    passportNameConfirmed: false,
     email: "",
     phone: "",
     streetAddress: "",
@@ -158,6 +171,7 @@ function AddClientManualPageContent() {
   const [revealedPassportIds, setRevealedPassportIds] = useState<Record<string, boolean>>({});
   const [profileFormModalOpen, setProfileFormModalOpen] = useState(false);
   const [editClientId, setEditClientId] = useState<string | null>(null);
+  const [profileSaveError, setProfileSaveError] = useState<string | null>(null);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     core: true,
     travellers: true,
@@ -181,7 +195,7 @@ function AddClientManualPageContent() {
     const client = getClientData(editId);
     const initialProfile = mapClientToManualProfile(client);
     setProfile(initialProfile);
-    setCreatedClientName(client.name);
+    setCreatedClientName(formatMockClientDisplayName(client));
     setStage(2);
     setEditClientId(editId);
   }, [editId]);
@@ -195,6 +209,9 @@ function AddClientManualPageContent() {
     const name = [first, middle, last].filter(Boolean).join(" ");
     setCreatedClientName(name);
     const initial = emptyProfile({ first, last, middle });
+    initial.coreIdentity.title = quickCreate.title;
+    initial.coreIdentity.titleOther =
+      quickCreate.title === "Other" ? quickCreate.titleOther.trim() : "";
     initial.coreIdentity.email = quickCreate.email.trim();
     initial.coreIdentity.phone = quickCreate.phone.trim();
     initial.coreIdentity.tags = [...quickCreate.tags];
@@ -403,6 +420,31 @@ function AddClientManualPageContent() {
   };
 
   const handleSaveProfile = () => {
+    if (!profile) return;
+    setProfileSaveError(null);
+    if (!isTravelerGenderSelected(profile.coreIdentity.gender)) {
+      setProfileSaveError("Please select a gender in Core Identity.");
+      document.getElementById("core-identity-gender")?.focus();
+      return;
+    }
+    if (!profile.coreIdentity.passportNameConfirmed) {
+      setProfileSaveError("Please confirm that the legal name matches the traveler’s passport.");
+      document.getElementById("core-passport-name-confirm")?.focus();
+      return;
+    }
+    for (let i = 0; i < profile.travellers.length; i++) {
+      if (!isTravelerGenderSelected(profile.travellers[i].gender)) {
+        setProfileSaveError(
+          i === 0
+            ? "Please select a gender for the main traveller."
+            : `Please select a gender for traveller ${i + 1}.`
+        );
+        document
+          .getElementById(i === 0 ? "main-traveller-gender" : `traveller-gender-${i}`)
+          ?.focus();
+        return;
+      }
+    }
     setProfile((prev) =>
       prev
         ? {
@@ -452,40 +494,81 @@ function AddClientManualPageContent() {
 
         <form onSubmit={handleQuickCreate} className="mt-8">
           <div className="rounded-card border border-border-light bg-white p-6 shadow-soft">
-            <div className="grid gap-5 sm:grid-cols-2">
-              <div>
-                <label className={labelClass}>Legal First Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={quickCreate.legalFirstName}
-                  onChange={(e) => updateQuickCreate({ legalFirstName: e.target.value })}
-                  className={inputClass}
-                  placeholder="e.g. Emma"
-                />
+            <p className="mb-5 text-sm leading-relaxed text-charcoal-light">
+              Enter your full legal name exactly as it appears on your passport.
+            </p>
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-12 sm:items-start">
+                <div className="min-w-0 sm:col-span-3">
+                  <label className={labelClass}>Title</label>
+                  <select
+                    value={quickCreate.title}
+                    onChange={(e) =>
+                      updateQuickCreate({
+                        title: e.target.value as QuickCreateData["title"],
+                        ...(e.target.value !== "Other" ? { titleOther: "" } : {}),
+                      })
+                    }
+                    className={selectClass}
+                    aria-label="Title"
+                  >
+                    {TRAVELER_TITLE_OPTIONS.map((opt) => (
+                      <option key={opt.value || "none"} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="min-w-0 sm:col-span-9">
+                  <label className={labelClass}>First name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={quickCreate.legalFirstName}
+                    onChange={(e) => updateQuickCreate({ legalFirstName: e.target.value })}
+                    className={inputClass}
+                    placeholder="e.g. Emma"
+                  />
+                </div>
               </div>
-              <div>
-                <label className={labelClass}>Legal Last Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={quickCreate.legalLastName}
-                  onChange={(e) => updateQuickCreate({ legalLastName: e.target.value })}
-                  className={inputClass}
-                  placeholder="e.g. Johnson"
-                />
+              {quickCreate.title === "Other" && (
+                <div className="max-w-md">
+                  <label className={labelClass}>Specify title (optional)</label>
+                  <input
+                    type="text"
+                    value={quickCreate.titleOther}
+                    onChange={(e) => updateQuickCreate({ titleOther: e.target.value })}
+                    className={inputClass}
+                    placeholder="e.g. Mx, Sir"
+                  />
+                </div>
+              )}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-12 sm:items-start">
+                <div className="min-w-0 sm:col-span-6">
+                  <label className={labelClass}>Middle name (if applicable)</label>
+                  <input
+                    type="text"
+                    value={quickCreate.middleName}
+                    onChange={(e) => updateQuickCreate({ middleName: e.target.value })}
+                    className={inputClass}
+                    placeholder="Optional"
+                  />
+                </div>
+                <div className="min-w-0 sm:col-span-6">
+                  <label className={labelClass}>Last name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={quickCreate.legalLastName}
+                    onChange={(e) => updateQuickCreate({ legalLastName: e.target.value })}
+                    className={inputClass}
+                    placeholder="e.g. Johnson"
+                  />
+                </div>
               </div>
-              <div className="sm:col-span-2">
-                <label className={labelClass}>Middle Name</label>
-                <input
-                  type="text"
-                  value={quickCreate.middleName}
-                  onChange={(e) => updateQuickCreate({ middleName: e.target.value })}
-                  className={inputClass}
-                  placeholder="Optional"
-                />
-              </div>
-              <div>
+            </div>
+            <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-12 sm:items-start">
+              <div className="min-w-0 sm:col-span-6">
                 <label className={labelClass}>Email</label>
                 <input
                   type="email"
@@ -495,7 +578,7 @@ function AddClientManualPageContent() {
                   placeholder="client@example.com"
                 />
               </div>
-              <div>
+              <div className="min-w-0 sm:col-span-6">
                 <label className={labelClass}>Phone</label>
                 <input
                   type="tel"
@@ -505,7 +588,7 @@ function AddClientManualPageContent() {
                   placeholder="+1 555 000 0000"
                 />
               </div>
-              <div className="sm:col-span-2">
+              <div className="min-w-0 sm:col-span-12">
                 <label className={labelClass}>Client Tags</label>
                 <div className="flex flex-wrap gap-2 rounded-button border border-border-light bg-white p-2.5">
                   {quickCreate.tags.map((tag) => (
@@ -675,37 +758,107 @@ function AddClientManualPageContent() {
         {/* 1. Core Identity */}
         <CollapsibleSection
           title="Core Identity"
+          subtext="Enter your full legal name exactly as it appears on your passport."
           open={openSections.core}
           onToggle={() => toggleSection("core")}
         >
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className={labelClass}>Legal First Name</label>
-              <input
-                type="text"
-                value={profile.coreIdentity.legalFirstName}
-                onChange={(e) => updateCore({ legalFirstName: e.target.value })}
-                className={inputClass}
-              />
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-12 sm:items-start">
+              <div className="min-w-0 sm:col-span-3">
+                <label className={labelClass}>Title</label>
+                <select
+                  value={profile.coreIdentity.title}
+                  onChange={(e) =>
+                    updateCore({
+                      title: e.target.value as TravelerDetailsStep["title"],
+                      ...(e.target.value !== "Other" ? { titleOther: "" } : {}),
+                    })
+                  }
+                  className={selectClass}
+                  aria-label="Title"
+                >
+                  {TRAVELER_TITLE_OPTIONS.map((opt) => (
+                    <option key={opt.value || "none"} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="min-w-0 sm:col-span-9">
+                <label className={labelClass}>First name</label>
+                <input
+                  type="text"
+                  value={profile.coreIdentity.legalFirstName}
+                  onChange={(e) => updateCore({ legalFirstName: e.target.value })}
+                  className={inputClass}
+                />
+              </div>
             </div>
-            <div>
-              <label className={labelClass}>Middle Name</label>
-              <input
-                type="text"
-                value={profile.coreIdentity.middleName}
-                onChange={(e) => updateCore({ middleName: e.target.value })}
-                className={inputClass}
-              />
+            {profile.coreIdentity.title === "Other" && (
+              <div className="max-w-md">
+                <label className={labelClass}>Specify title (optional)</label>
+                <input
+                  type="text"
+                  value={profile.coreIdentity.titleOther}
+                  onChange={(e) => updateCore({ titleOther: e.target.value })}
+                  className={inputClass}
+                  placeholder="e.g. Mx, Sir"
+                />
+              </div>
+            )}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-12 sm:items-start">
+              <div className="min-w-0 sm:col-span-6">
+                <label className={labelClass}>Middle name (if applicable)</label>
+                <input
+                  type="text"
+                  value={profile.coreIdentity.middleName}
+                  onChange={(e) => updateCore({ middleName: e.target.value })}
+                  className={inputClass}
+                />
+              </div>
+              <div className="min-w-0 sm:col-span-6">
+                <label className={labelClass}>Last name</label>
+                <input
+                  type="text"
+                  value={profile.coreIdentity.legalLastName}
+                  onChange={(e) => updateCore({ legalLastName: e.target.value })}
+                  className={inputClass}
+                />
+              </div>
             </div>
-            <div>
-              <label className={labelClass}>Legal Last Name</label>
+          </div>
+          <div className="mt-7 rounded-lg border border-border-light bg-sand-warm/40 px-3 py-2.5">
+            <label className="flex cursor-pointer items-start gap-2.5 text-sm leading-snug text-charcoal">
               <input
-                type="text"
-                value={profile.coreIdentity.legalLastName}
-                onChange={(e) => updateCore({ legalLastName: e.target.value })}
-                className={inputClass}
+                id="core-passport-name-confirm"
+                type="checkbox"
+                required
+                checked={profile.coreIdentity.passportNameConfirmed}
+                onChange={(e) => updateCore({ passportNameConfirmed: e.target.checked })}
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-border-light text-navy focus:ring-navy"
+                aria-required="true"
               />
-            </div>
+              <span>I confirm this name matches the traveler&apos;s passport</span>
+            </label>
+          </div>
+          <div className="mt-8 border-t border-border-light/70 pt-8">
+            <label className={labelClass} htmlFor="core-preferred-name">
+              Preferred name
+            </label>
+            <p className="mb-1.5 text-xs text-charcoal-light">
+              Optional — how you&apos;d like us to address you in messages and planning.
+            </p>
+            <input
+              id="core-preferred-name"
+              type="text"
+              value={profile.coreIdentity.preferredName}
+              onChange={(e) => updateCore({ preferredName: e.target.value })}
+              className={inputClass}
+              placeholder="e.g. Alex, nickname"
+              autoComplete="nickname"
+            />
+          </div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div>
               <label className={labelClass}>Email</label>
               <input
@@ -734,15 +887,20 @@ function AddClientManualPageContent() {
               />
             </div>
             <div>
-              <label className={labelClass}>Gender</label>
+              <label className={labelClass} htmlFor="core-identity-gender">
+                Gender
+              </label>
               <select
+                id="core-identity-gender"
+                required
                 value={profile.coreIdentity.gender}
                 onChange={(e) => updateCore({ gender: e.target.value })}
-                className={inputClass}
+                className={selectClass}
+                aria-required="true"
               >
-                {GENDER_OPTIONS.map((g) => (
-                  <option key={g || "blank"} value={g}>
-                    {g || "Select…"}
+                {TRAVELER_GENDER_OPTIONS.map((opt) => (
+                  <option key={opt.value || "placeholder"} value={opt.value}>
+                    {opt.label}
                   </option>
                 ))}
               </select>
@@ -888,15 +1046,20 @@ function AddClientManualPageContent() {
                     />
                   </div>
                   <div>
-                    <label className={labelClass}>Gender</label>
+                    <label className={labelClass} htmlFor="main-traveller-gender">
+                      Gender
+                    </label>
                     <select
+                      id="main-traveller-gender"
+                      required
                       value={profile.travellers[0].gender}
                       onChange={(e) => updateTraveller(0, { gender: e.target.value })}
-                      className={inputClass}
+                      className={selectClass}
+                      aria-required="true"
                     >
-                      {GENDER_OPTIONS.map((g) => (
-                        <option key={g || "blank"} value={g}>
-                          {g || "Select…"}
+                      {TRAVELER_GENDER_OPTIONS.map((opt) => (
+                        <option key={opt.value || "placeholder"} value={opt.value}>
+                          {opt.label}
                         </option>
                       ))}
                     </select>
@@ -1111,17 +1274,20 @@ function AddClientManualPageContent() {
                         />
                       </div>
                       <div>
-                        <label className={labelClass}>
-                          Gender <span className="text-charcoal-light">(optional)</span>
+                        <label className={labelClass} htmlFor={`traveller-gender-${i}`}>
+                          Gender
                         </label>
                         <select
+                          id={`traveller-gender-${i}`}
+                          required
                           value={t.gender}
                           onChange={(e) => updateTraveller(i, { gender: e.target.value })}
-                          className={inputClass}
+                          className={selectClass}
+                          aria-required="true"
                         >
-                          {GENDER_OPTIONS.map((g) => (
-                            <option key={g || "blank"} value={g}>
-                              {g || "Select…"}
+                          {TRAVELER_GENDER_OPTIONS.map((opt) => (
+                            <option key={opt.value || "placeholder"} value={opt.value}>
+                              {opt.label}
                             </option>
                           ))}
                         </select>
@@ -1838,8 +2004,14 @@ function AddClientManualPageContent() {
 
       {/* Footer actions */}
       <div className="fixed bottom-0 left-0 right-0 border-t border-border-light bg-white/95 py-4 shadow-soft backdrop-blur-sm">
-        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 px-4">
-          <div className="flex flex-wrap gap-2">
+        <div className="mx-auto flex max-w-3xl flex-col gap-2 px-4">
+          {profileSaveError && (
+            <p className="text-sm text-error-muted" role="alert">
+              {profileSaveError}
+            </p>
+          )}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={handleSaveProfile}
@@ -1871,6 +2043,7 @@ function AddClientManualPageContent() {
                 </Link>
               </>
             )}
+            </div>
           </div>
         </div>
       </div>

@@ -10,12 +10,15 @@ import type {
   EmergencyContactStep,
   TravelPreferencesStep,
   HealthStep,
+  TravelerTitle,
 } from "./secure-forms";
 
 export type { TravelerDetailsStep, PassportStep, EmergencyContactStep, TravelPreferencesStep, HealthStep };
 
 /** Quick Create – Stage 1 (only name required) */
 export interface QuickCreateData {
+  title: TravelerTitle;
+  titleOther: string;
   legalFirstName: string;
   legalLastName: string;
   middleName: string;

@@ -10,9 +10,14 @@ import type {
   HealthData,
   ImportantDatesData,
 } from "@/components/ClientProfileTabs";
+import type { TravelerTitle } from "@/types/secure-forms";
 
 export interface MockClient {
   name: string;
+  /** Optional honorific for display (e.g. Mr, Ms); shown before name in profile header */
+  title?: TravelerTitle;
+  /** When title is Other */
+  titleOther?: string;
   initials: string;
   dob: string;
   age: number;
@@ -37,6 +42,7 @@ export interface MockClient {
 export const MOCK_CLIENTS: Record<string, MockClient> = {
   "emma-johnson": {
     name: "Emma Johnson",
+    title: "Ms",
     initials: "EJ",
     dob: "18/05/1982",
     age: 42,
@@ -144,6 +150,8 @@ export function getClientData(id: string): MockClient {
     ...MOCK_CLIENTS["emma-johnson"],
     name,
     initials,
+    title: "",
+    titleOther: "",
     email: `${name.toLowerCase().replace(" ", ".")}@email.com`,
     tags: [{ label: "Client", style: "bg-charcoal-light/10 text-charcoal" }],
   };

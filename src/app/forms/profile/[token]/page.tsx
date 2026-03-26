@@ -15,6 +15,9 @@ import {
   type AdditionalTraveler,
   type FinalConsentStep,
   type ClientProfileFormData,
+  TRAVELER_TITLE_OPTIONS,
+  TRAVELER_GENDER_OPTIONS,
+  isTravelerGenderSelected,
 } from "@/types/secure-forms";
 import { Info, Lock, Plus, Trash2 } from "lucide-react";
 
@@ -31,10 +34,10 @@ const STEPS: { key: string; label: string }[] = [
 ];
 
 const inputClass =
-  "w-full rounded-lg border border-[#e8e4de] bg-white px-4 py-2.5 text-[#2c2a26] placeholder:text-[#9a9794] focus:border-[#1e293b] focus:outline-none focus:ring-1 focus:ring-[#1e293b]";
+  "box-border min-h-[42px] w-full rounded-lg border border-[#e8e4de] bg-white px-4 py-2.5 text-[#2c2a26] placeholder:text-[#9a9794] focus:border-[#1e293b] focus:outline-none focus:ring-1 focus:ring-[#1e293b]";
 /** Selects use same styling as inputs with extra right padding so the dropdown arrow aligns with date picker icon spacing */
 const selectClass =
-  "w-full rounded-lg border border-[#e8e4de] bg-white pl-4 pr-10 py-2.5 text-[#2c2a26] focus:border-[#1e293b] focus:outline-none focus:ring-1 focus:ring-[#1e293b]";
+  "box-border min-h-[42px] w-full rounded-lg border border-[#e8e4de] bg-white pl-4 pr-10 py-2.5 text-[#2c2a26] focus:border-[#1e293b] focus:outline-none focus:ring-1 focus:ring-[#1e293b]";
 const labelClass = "block text-sm font-medium text-[#2c2a26] mb-1.5";
 
 /** Single-line input that expands when user types multiple lines or presses Enter */
@@ -73,9 +76,13 @@ function ExpandablePreferenceInput({
 }
 
 const emptyTraveler: TravelerDetailsStep = {
+  title: "",
+  titleOther: "",
   legalFirstName: "",
   middleName: "",
   legalLastName: "",
+  preferredName: "",
+  passportNameConfirmed: false,
   email: "",
   phone: "",
   streetAddress: "",
@@ -251,6 +258,10 @@ export default function ClientProfileFormPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (step < STEPS.length - 1) {
+      if (step === 0) {
+        if (!isTravelerGenderSelected(data.traveler.gender)) return;
+        if (!data.traveler.passportNameConfirmed) return;
+      }
       setStep((s) => s + 1);
       return;
     }
@@ -259,7 +270,7 @@ export default function ClientProfileFormPage() {
       const res = await fetch("/api/profile/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({ token, data }),
       });
       if (res.ok) {
         setSubmitted(true);
@@ -327,39 +338,118 @@ export default function ClientProfileFormPage() {
         {step === 0 && (
           <div className="space-y-6">
             <FormSection title="Traveler details">
-              <p className="mb-3 flex items-center gap-2 text-xs text-[#5c5a57]">
-                <Info className="h-3.5 w-3.5 flex-shrink-0" strokeWidth={1.5} />
-                Please enter your name exactly as it appears on your passport.
+              <p className="mb-4 flex items-start gap-2 text-sm leading-relaxed text-[#5c5a57]">
+                <Info className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" strokeWidth={1.5} />
+                Enter your full legal name exactly as it appears on your passport.
               </p>
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div className="sm:col-span-2">
-                  <label className={labelClass}>First name (as on passport)</label>
-                  <input
-                    type="text"
-                    required
-                    value={data.traveler.legalFirstName}
-                    onChange={(e) => updateTraveler({ legalFirstName: e.target.value })}
-                    className={inputClass}
-                  />
+              {/* Legal name — tight group; checkbox below confirms accuracy */}
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-12 sm:items-start">
+                  <div className="min-w-0 sm:col-span-3">
+                    <label className={labelClass} htmlFor="traveler-title">
+                      Title
+                    </label>
+                    <select
+                      id="traveler-title"
+                      value={data.traveler.title}
+                      onChange={(e) =>
+                        updateTraveler({
+                          title: e.target.value as TravelerDetailsStep["title"],
+                          ...(e.target.value !== "Other" ? { titleOther: "" } : {}),
+                        })
+                      }
+                      className={selectClass}
+                      aria-label="Title"
+                    >
+                      {TRAVELER_TITLE_OPTIONS.map((opt) => (
+                        <option key={opt.value || "none"} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="min-w-0 sm:col-span-9">
+                    <label className={labelClass}>First name</label>
+                    <input
+                      type="text"
+                      required
+                      value={data.traveler.legalFirstName}
+                      onChange={(e) => updateTraveler({ legalFirstName: e.target.value })}
+                      className={inputClass}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className={labelClass}>Middle name</label>
-                  <input
-                    type="text"
-                    value={data.traveler.middleName}
-                    onChange={(e) => updateTraveler({ middleName: e.target.value })}
-                    className={inputClass}
-                  />
+                {data.traveler.title === "Other" && (
+                  <div className="max-w-md">
+                    <label className={labelClass} htmlFor="traveler-title-other">
+                      Specify title (optional)
+                    </label>
+                    <input
+                      id="traveler-title-other"
+                      type="text"
+                      value={data.traveler.titleOther}
+                      onChange={(e) => updateTraveler({ titleOther: e.target.value })}
+                      className={inputClass}
+                      placeholder="e.g. Mx, Sir"
+                      autoComplete="honorific-prefix"
+                    />
+                  </div>
+                )}
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-12 sm:items-start">
+                  <div className="min-w-0 sm:col-span-6">
+                    <label className={labelClass}>Middle name (if applicable)</label>
+                    <input
+                      type="text"
+                      value={data.traveler.middleName}
+                      onChange={(e) => updateTraveler({ middleName: e.target.value })}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div className="min-w-0 sm:col-span-6">
+                    <label className={labelClass}>Last name</label>
+                    <input
+                      type="text"
+                      required
+                      value={data.traveler.legalLastName}
+                      onChange={(e) => updateTraveler({ legalLastName: e.target.value })}
+                      className={inputClass}
+                    />
+                  </div>
                 </div>
               </div>
-              <div>
-                <label className={labelClass}>Last name (as on passport)</label>
+              {/* Confirm legal name before personalisation */}
+              <div className="mt-7 rounded-lg border border-[#e8e4de]/80 bg-[#faf9f7] px-3 py-2.5">
+                <label className="flex cursor-pointer items-start gap-2.5 text-sm leading-snug text-[#2c2a26]">
+                  <input
+                    id="traveler-passport-name-confirm"
+                    type="checkbox"
+                    required
+                    checked={data.traveler.passportNameConfirmed}
+                    onChange={(e) =>
+                      updateTraveler({ passportNameConfirmed: e.target.checked })
+                    }
+                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-[#e8e4de] text-[#1e293b] focus:ring-[#1e293b]"
+                    aria-required="true"
+                  />
+                  <span>I confirm this name matches the traveler&apos;s passport</span>
+                </label>
+              </div>
+              {/* Preferred name — separated from legal + confirmation */}
+              <div className="mt-8 border-t border-[#e8e4de]/50 pt-8">
+                <label className={labelClass} htmlFor="traveler-preferred-name">
+                  Preferred name
+                </label>
+                <p className="mb-1.5 text-xs text-[#5c5a57]">
+                  Optional — how you&apos;d like us to address you in messages and planning.
+                </p>
                 <input
+                  id="traveler-preferred-name"
                   type="text"
-                  required
-                  value={data.traveler.legalLastName}
-                  onChange={(e) => updateTraveler({ legalLastName: e.target.value })}
+                  value={data.traveler.preferredName}
+                  onChange={(e) => updateTraveler({ preferredName: e.target.value })}
                   className={inputClass}
+                  placeholder="e.g. Alex, nickname"
+                  autoComplete="nickname"
                 />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -441,19 +531,22 @@ export default function ClientProfileFormPage() {
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>
-                    Gender <span className="text-[#8a8784]">(optional)</span>
+                  <label className={labelClass} htmlFor="traveler-gender">
+                    Gender
                   </label>
                   <select
+                    id="traveler-gender"
+                    required
                     value={data.traveler.gender}
                     onChange={(e) => updateTraveler({ gender: e.target.value })}
                     className={selectClass}
+                    aria-required="true"
                   >
-                    <option value="">Select…</option>
-                    <option value="Female">Female</option>
-                    <option value="Male">Male</option>
-                    <option value="Non-binary">Non-binary</option>
-                    <option value="Prefer not to say">Prefer not to say</option>
+                    {TRAVELER_GENDER_OPTIONS.map((opt) => (
+                      <option key={opt.value || "placeholder"} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -921,21 +1014,24 @@ export default function ClientProfileFormPage() {
                       />
                     </div>
                     <div>
-                      <label className={labelClass}>
-                        Gender <span className="text-[#8a8784]">(optional)</span>
+                      <label className={labelClass} htmlFor={`additional-gender-${i}`}>
+                        Gender
                       </label>
                       <select
+                        id={`additional-gender-${i}`}
+                        required
                         value={t.gender}
                         onChange={(e) =>
                           updateAdditionalTraveler(i, { gender: e.target.value })
                         }
                         className={selectClass}
+                        aria-required="true"
                       >
-                        <option value="">Select…</option>
-                        <option value="Female">Female</option>
-                        <option value="Male">Male</option>
-                        <option value="Non-binary">Non-binary</option>
-                        <option value="Prefer not to say">Prefer not to say</option>
+                        {TRAVELER_GENDER_OPTIONS.map((opt) => (
+                          <option key={opt.value || "placeholder"} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>

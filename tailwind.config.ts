@@ -9,6 +9,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        "navy-hero": "#1F2A37",
         navy: "#1e293b",
         "navy-dark": "#0f172a",
         sand: "#faf8f5",
@@ -23,6 +24,7 @@ const config: Config = {
         "error-muted": "#b91c1c",
         champagne: "#f4efe8",
         "gold-accent": "#C8A96A",
+        "scarce-muted": "#A65D5D",
       },
       fontFamily: {
         "serif-display": ["var(--font-eb-garamond)", "Georgia", "serif"],

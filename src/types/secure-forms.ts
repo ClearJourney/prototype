@@ -80,11 +80,53 @@ export interface InquiryFormData {
   newsletterOptIn: boolean;
 }
 
+/** Honorific for client-facing display (optional; empty = not specified). */
+export type TravelerTitle =
+  | ""
+  | "Mr"
+  | "Mrs"
+  | "Miss"
+  | "Ms"
+  | "Dr"
+  | "Prof"
+  | "Other";
+
+export const TRAVELER_TITLE_OPTIONS: { value: TravelerTitle; label: string }[] = [
+  { value: "", label: "Select title" },
+  { value: "Mr", label: "Mr" },
+  { value: "Mrs", label: "Mrs" },
+  { value: "Miss", label: "Miss" },
+  { value: "Ms", label: "Ms" },
+  { value: "Dr", label: "Dr" },
+  { value: "Prof", label: "Prof" },
+  { value: "Other", label: "Other" },
+];
+
+/** Required gender selection for bookings / logistics (empty value = placeholder). */
+export const TRAVELER_GENDER_OPTIONS: { value: string; label: string }[] = [
+  { value: "", label: "Select gender" },
+  { value: "Male", label: "Male" },
+  { value: "Female", label: "Female" },
+  { value: "Non-binary", label: "Non-binary" },
+];
+
+export function isTravelerGenderSelected(gender: string): boolean {
+  return gender === "Male" || gender === "Female" || gender === "Non-binary";
+}
+
 /** Client Profile form — step data */
 export interface TravelerDetailsStep {
+  /** Optional salutation — first field in intake; use "" for placeholder state */
+  title: TravelerTitle;
+  /** When title is "Other", optional free-text honorific */
+  titleOther: string;
   legalFirstName: string;
   middleName: string;
   legalLastName: string;
+  /** Optional — nickname or preferred form of address for personalised communication. */
+  preferredName: string;
+  /** Must be true to continue — confirms legal name matches the traveler’s passport. */
+  passportNameConfirmed: boolean;
   email: string;
   phone: string;
   streetAddress: string;

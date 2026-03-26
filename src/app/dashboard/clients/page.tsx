@@ -12,7 +12,7 @@ type ClientRow = {
 };
 
 const CLIENTS: ClientRow[] = [
-  { id: "emma-johnson", name: "Emma Johnson", initials: "EJ", tags: ["VIP", "Returning Client"] },
+  { id: "emma-johnson", name: "Ms Emma Johnson", initials: "EJ", tags: ["VIP", "Returning Client"] },
   { id: "wf1", name: "Warren Foster", initials: "WF", tags: ["Safari", "Luxury Resorts"] },
   { id: "ls1", name: "Liang Smith", initials: "LS", tags: ["Family", "Japan"] },
   { id: "ls2", name: "Liang Smith", initials: "LS", tags: ["Honeymoon", "Cruise"] },

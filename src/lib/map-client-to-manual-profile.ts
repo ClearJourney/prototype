@@ -74,9 +74,13 @@ export function mapClientToManualProfile(client: MockClient): ManualClientProfil
 
   return {
     coreIdentity: {
+      title: client.title ?? "",
+      titleOther: client.titleOther ?? "",
       legalFirstName: first,
       legalLastName: last,
       middleName: middle,
+      preferredName: "",
+      passportNameConfirmed: false,
       email: client.email,
       phone: client.phone,
       streetAddress: "",

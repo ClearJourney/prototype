@@ -5,6 +5,7 @@ import { ClientProfileTabs } from "@/components/ClientProfileTabs";
 import { ClientRemindersPanel } from "@/components/ClientRemindersPanel";
 import { ConciergeAssistantTrigger } from "@/components/ConciergeAssistantTrigger";
 import { getClientData } from "@/lib/mock-clients";
+import { formatMockClientDisplayName } from "@/lib/client-display-name";
 
 export default function ClientProfilePage({
   params,
@@ -13,6 +14,7 @@ export default function ClientProfilePage({
 }) {
   const { id } = params;
   const client = getClientData(id);
+  const displayName = formatMockClientDisplayName(client);
 
   return (
     <div className="flex flex-col gap-6">
@@ -23,9 +25,9 @@ export default function ClientProfilePage({
             Clients
           </Link>
           <span className="mx-2">/</span>
-          <span className="font-medium text-charcoal">{client.name}</span>
+          <span className="font-medium text-charcoal">{displayName}</span>
         </nav>
-        <ConciergeAssistantTrigger clientName={client.name} />
+        <ConciergeAssistantTrigger clientName={displayName} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
@@ -38,7 +40,7 @@ export default function ClientProfilePage({
                 {client.initials}
               </span>
               <div>
-                <h1 className="text-2xl font-bold text-charcoal">{client.name}</h1>
+                <h1 className="text-2xl font-bold text-charcoal">{displayName}</h1>
                 <p className="text-charcoal-light">
                   {client.dob} ({client.age})
                 </p>
