@@ -42,3 +42,35 @@ body {
     padding-right: 2.5rem !important; /* 40px – full-width select text never overlaps caret */
   }
 }
+
+@layer components {
+  /* Article body: tight paragraph rhythm; section breaks come from headings / HR */
+  .blog-article.prose > *:first-child {
+    margin-top: 0;
+  }
+
+  .blog-article.prose p {
+    margin-top: 0;
+    margin-bottom: 0.875rem; /* 14px */
+    line-height: 1.65;
+  }
+
+  .blog-article.prose p:last-child {
+    margin-bottom: 0;
+  }
+
+  /* Avoid double spacing when TipTap wraps each line in <p> — keep rhythm consistent */
+  .blog-article.prose p + p {
+    margin-top: 0;
+  }
+
+  /* Lists: keep list items readable without huge gaps */
+  .blog-article.prose li > p {
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .blog-article.prose li > p:first-child {
+    margin-top: 0;
+  }
+}

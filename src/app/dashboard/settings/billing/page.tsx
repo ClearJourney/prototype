@@ -69,7 +69,7 @@ export default function BillingSettingsPage() {
               </div>
             </div>
             <p className="text-sm text-charcoal-light">
-              You'll be redirected to a secure Stripe page to update your payment details, download invoices, or cancel your plan.
+              You&apos;ll be redirected to a secure Stripe page to update your payment details, download invoices, or cancel your plan.
             </p>
           </div>
         </SettingsCard>

@@ -112,7 +112,7 @@ export default function ClientProfilePage({
           <section className="rounded-xl border border-border-light bg-white p-6">
             <h2 className="text-lg font-semibold text-charcoal">Notes & Insights</h2>
             <div className="mt-4 rounded-lg bg-amber-50/80 border border-amber-200/60 p-4">
-              <p className="text-2xl text-amber-600/80 leading-none">"</p>
+              <p className="text-2xl text-amber-600/80 leading-none">&ldquo;</p>
               <p className="text-sm text-charcoal -mt-2">{client.aiSummary}</p>
             </div>
             <p className="mt-2 text-xs text-charcoal-light">Concierge AI Summary</p>

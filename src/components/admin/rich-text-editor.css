@@ -1,0 +1,68 @@
+/* TipTap / ProseMirror — admin editor surface */
+.tiptap-wrap .tiptap {
+  min-height: 280px;
+  outline: none;
+  padding: 0.875rem 1rem;
+}
+
+.tiptap-wrap .tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: rgb(107 114 128);
+}
+
+.tiptap-wrap .tiptap h2,
+.tiptap-wrap .tiptap h3 {
+  font-family: inherit;
+  font-weight: 600;
+  color: #1e293b;
+}
+.tiptap-wrap .tiptap h2 {
+  font-size: 1.35rem;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+.tiptap-wrap .tiptap h3 {
+  font-size: 1.15rem;
+  margin-top: 0.85rem;
+  margin-bottom: 0.4rem;
+}
+
+.tiptap-wrap .tiptap p {
+  margin: 0.5rem 0;
+  line-height: 1.65;
+}
+
+.tiptap-wrap .tiptap ul,
+.tiptap-wrap .tiptap ol {
+  margin: 0.5rem 0;
+  padding-left: 1.25rem;
+}
+
+.tiptap-wrap .tiptap blockquote {
+  margin: 0.75rem 0;
+  padding-left: 1rem;
+  border-left: 3px solid rgba(200, 169, 106, 0.85);
+  color: #4b5563;
+}
+
+.tiptap-wrap .tiptap hr {
+  margin: 1rem 0;
+  border: none;
+  border-top: 1px solid #e5e7eb;
+}
+
+.tiptap-wrap .tiptap img {
+  max-width: 100%;
+  height: auto;
+  margin: 0.75rem 0;
+  border-radius: 8px;
+}
+
+.tiptap-wrap .tiptap a {
+  color: #1e293b;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

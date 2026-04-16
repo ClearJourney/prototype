@@ -23,6 +23,10 @@ yarn-error.log*
 # Local data (inquiry store persistence)
 .data/
 
+# Uploaded blog hero images (local dev)
+public/uploads/blog/*
+!public/uploads/blog/.gitkeep
+
 # Misc
 .DS_Store
 *.pem

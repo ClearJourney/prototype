@@ -1,7 +1,17 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { getSiteUrl } from "@/lib/site-url";
+
+function safeMetadataBase(): URL {
+  try {
+    return new URL(getSiteUrl());
+  } catch {
+    return new URL("http://localhost:3000");
+  }
+}
 
 export const metadata: Metadata = {
+  metadataBase: safeMetadataBase(),
   title: "Clear Journey",
   description:
     "Supercharge your business with real-time analytics and data-driven insights.",
